@@ -27,7 +27,13 @@ class UserAuthView(APIView):
         return response
 
     def _get_token(self, code: str):
-        toekn_request = requests.get(f'https://kauth.kakao.com/oauth/token?grant_type=authorization_code&client_id={KAKAO_REST_API_KEY}&redirect_uri={KAKAO_CALLBACK_URI}&code={code}')
+        params = {
+            'grant_type': 'authorization_code',
+            'client_id': KAKAO_REST_API_KEY,
+            'redirect_uri': KAKAO_CALLBACK_URI,
+            'code': code
+        }
+        toekn_request = requests.get(f'https://kauth.kakao.com/oauth/token', params=params)
         toekn_request_json = toekn_request.json()
         if toekn_request.status_code != 200:
             return Response(toekn_request_json, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
