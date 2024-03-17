@@ -34,6 +34,15 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+CAREERS = (
+    ('1', '신입0-1년 미만'),
+    ('2', '1년 이상-3년 미만'),
+    ('3', '3년 이상-5년 미만'),
+    ('4', '5년 이상-7년 미만'),
+    ('5', '7년 이상')
+)
+
+
 class User(AbstractUser):
     username = None
     first_name = None
@@ -42,6 +51,13 @@ class User(AbstractUser):
 
     nickname = models.CharField(max_length=10)
     profile = models.CharField(max_length=255)
+    career = models.CharField(choices=CAREERS, max_length=2, null=True)
+
+    interest1 = models.ForeignKey('Interest', related_name='interest1', on_delete=models.SET_NULL, null=True)
+    interest2 = models.ForeignKey('Interest', related_name='interest2', on_delete=models.SET_NULL, null=True)
+    interest3 = models.ForeignKey('Interest', related_name='interest3', on_delete=models.SET_NULL, null=True)
+
+    job = models.ForeignKey('Job', on_delete=models.SET_NULL, null=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -50,3 +66,11 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+    
+
+class Interest(models.Model):
+    name = models.CharField(unique=True, max_length=20)
+
+
+class Job(models.Model):
+    name = models.CharField(unique=True, max_length=10)
