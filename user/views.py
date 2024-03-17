@@ -55,7 +55,6 @@ class UserAuthView(APIView):
     
     def _sign_in(self, email: str, access_token: str, code: str):
         try:
-            print(email)
             user = User.objects.get(email=email)
             # 기존에 가입된 유저의 Provider가 kakao가 아니면 에러, 맞으면 로그인
             # 다른 SNS로 가입된 유저
