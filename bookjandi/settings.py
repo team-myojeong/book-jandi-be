@@ -182,6 +182,8 @@ LOGGING = {
 
 AUTH_USER_MODEL = 'user.User'
 
+SOCIALACCOUNT_ADAPTER = 'user.adapters.KakaoAccountAdapter'
+
 SITE_ID = 1
 
 REST_AUTH = {

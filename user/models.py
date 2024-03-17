@@ -40,6 +40,9 @@ class User(AbstractUser):
     last_name = None
     email = models.EmailField(unique=True, max_length=255)
 
+    nickname = models.CharField(max_length=10)
+    profile = models.CharField(max_length=255)
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
