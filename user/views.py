@@ -11,7 +11,7 @@ from allauth.socialaccount.models import SocialAccount
 from user.models import User
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
 
-BASE_URL = 'http://127.0.0.1:8000/'
+BASE_URL = 'http://127.0.0.1:8000'
 
 
 class UserAuthView(APIView):
@@ -77,7 +77,7 @@ class UserAuthView(APIView):
         
     def _get_sign_in_response(self, access_token: str, code: str, is_signup: bool):
         data = {'access_token': access_token, 'code': code}
-        accept = requests.post(f'{BASE_URL}user/login/finish/', data=data)
+        accept = requests.post(f'{BASE_URL}/user/login/finish/', data=data)
         accept_status = accept.status_code
         if accept_status != 200:
             return Response({'message': f"failed to {'signup' if is_signup else 'signin'}"}, status=accept_status)
