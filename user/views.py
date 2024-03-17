@@ -6,7 +6,6 @@ from rest_framework.permissions import AllowAny
 from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-from allauth.socialaccount.models import SocialAccount
 
 from user.models import User
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
@@ -56,31 +55,22 @@ class UserAuthView(APIView):
     def _sign_in(self, email: str, access_token: str, code: str):
         try:
             user = User.objects.get(email=email)
-            # 기존에 가입된 유저의 Provider가 kakao가 아니면 에러, 맞으면 로그인
-            # 다른 SNS로 가입된 유저
-            social_user = SocialAccount.objects.get(user=user)
-            if social_user is None:
-                return Response({'message': 'email exists but not social user'}, status=status.HTTP_400_BAD_REQUEST)
-            if social_user.provider != 'kakao':
-                return Response({'message': 'no matching social type'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # 기존에 Kakao 가입된 유저
+            response = self._get_sign_in_response(access_token, code, bool(user.job))
+
+            return response
+        except User.DoesNotExist:
             response = self._get_sign_in_response(access_token, code, False)
 
             return response
-            
-        except User.DoesNotExist:
-            # 가입
-            response = self._get_sign_in_response(access_token, code, True)
-
-            return response
         
-    def _get_sign_in_response(self, access_token: str, code: str, is_signup: bool):
-        data = {'access_token': access_token, 'code': code}
+    def _get_sign_in_response(self, access_token: str, code: str, signup_complete: bool):
+        data = {
+            'access_token': access_token,
+            'code': code
+        }
         accept = requests.post(f'{BASE_URL}/user/login/finish/', data=data)
-        accept_status = accept.status_code
-        if accept_status != 200:
-            return Response({'message': f"failed to {'signup' if is_signup else 'signin'}"}, status=accept_status)
+        if (accept_status := accept.status_code) != 200:
+            return Response({'message': f"failed to {'signin' if signup_complete else 'signup'}"}, status=accept_status)
         accept_json = accept.json()
 
         refresh_token = accept.headers['Set-Cookie'].split('refresh_token=')[-1].split(';')[0]
@@ -89,10 +79,16 @@ class UserAuthView(APIView):
 
         response = {
             'access_token': accept_json['access'],
-            'is_signup': is_signup
+            'signup_complete': signup_complete
         }
         response_with_cookie = Response(response)
-        response_with_cookie.set_cookie('refresh_token', refresh_token, max_age=COOKIE_MAX_AGE, httponly=True, samesite='Lax')
+        response_with_cookie.set_cookie(
+            'refresh_token',
+            refresh_token,
+            max_age=COOKIE_MAX_AGE,
+            httponly=True,
+            samesite='Lax'
+        )
 
         return response_with_cookie
 
