@@ -8,6 +8,9 @@ from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 from user.models import User
+from user.serializers import SignupSerializer
+from user import schemas
+from user.permissions import IsNotSignupComepleted
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
 
 BASE_URL = 'http://127.0.0.1:8000'
@@ -97,3 +100,24 @@ class KakaoLoginView(SocialLoginView):
     adapter_class = kakao_view.KakaoOAuth2Adapter
     client_class = OAuth2Client
     callback_url = KAKAO_CALLBACK_URI
+
+
+class SignupView(APIView):
+    permission_classes = [IsNotSignupComepleted]
+
+    def post(self, request):
+        """
+        유저 정보 업데이트
+        job, career, interest 데이터 추가
+        """
+        user = User.objects.get(id=request.user.id)
+
+        data = schemas.Signup(**request.data).__dict__
+        signup_serializer = SignupSerializer(user, data=data, partial=True)
+
+        if signup_serializer.is_valid():
+            signup_serializer.save()
+            
+            return Response({"message": "정상"}, status.HTTP_200_OK)
+        
+        return Response({"message": "유저 정보 업데이트 실패"}, status.HTTP_500_INTERNAL_SERVER_ERROR)
