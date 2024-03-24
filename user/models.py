@@ -53,10 +53,6 @@ class User(AbstractUser):
     profile = models.CharField(max_length=255)
     career = models.CharField(choices=CAREERS, max_length=2, null=True)
 
-    interest1 = models.ForeignKey('Interest', related_name='interest1', on_delete=models.SET_NULL, null=True)
-    interest2 = models.ForeignKey('Interest', related_name='interest2', on_delete=models.SET_NULL, null=True)
-    interest3 = models.ForeignKey('Interest', related_name='interest3', on_delete=models.SET_NULL, null=True)
-
     job = models.ForeignKey('Job', on_delete=models.SET_NULL, null=True)
 
     USERNAME_FIELD = 'email'
@@ -66,10 +62,6 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
-    
-
-class Interest(models.Model):
-    name = models.CharField(unique=True, max_length=20)
 
 
 class Job(models.Model):
