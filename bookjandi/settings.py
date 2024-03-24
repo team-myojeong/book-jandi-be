@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'dj_rest_auth.registration',
 
     'user',
+    'book',
 
     "allauth",
     "allauth.account",
