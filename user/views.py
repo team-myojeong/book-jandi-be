@@ -118,6 +118,6 @@ class SignupView(APIView):
         if signup_serializer.is_valid():
             signup_serializer.save()
             
-            return Response({"message": "정상"}, status.HTTP_200_OK)
+            return Response({'success': True}, status.HTTP_200_OK)
         
-        return Response({"message": "유저 정보 업데이트 실패"}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'success': False}, status.HTTP_500_INTERNAL_SERVER_ERROR)
