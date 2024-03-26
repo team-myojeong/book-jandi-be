@@ -24,4 +24,5 @@ urlpatterns = [
     path('user/', include('allauth.urls')),
     
     path('book/', include('book.urls')),
+    path('poll/', include('poll.urls')),
 ]
