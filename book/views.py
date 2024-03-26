@@ -20,6 +20,9 @@ class BookView(APIView):
         
         try:
             book = Book.objects.get(isbn=isbn)
+            serializered_book_data = BookSerializer(book).data
+        
+            return Response(serializered_book_data, status.HTTP_200_OK)
         except Book.DoesNotExist:
             params = {
                 'query': isbn,
@@ -53,9 +56,23 @@ class BookView(APIView):
                 cover=cover
             )
 
-        serializered_book_data = BookSerializer(book).data
+            book_serializer = BookSerializer(
+                data={
+                    'isbn': isbn,
+                    'title': title,
+                    'author': author,
+                    'publisher': publisher,
+                    'translator': translator,
+                    'cover': cover
+                }
+            )
+            if book_serializer.is_valid():
+                serializered_book_data = BookSerializer(book).data
+                book_serializer.save()
         
-        return Response(serializered_book_data, status.HTTP_200_OK)
+                return Response(serializered_book_data, status.HTTP_200_OK)
+            
+        return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class BookSearchView(APIView):
