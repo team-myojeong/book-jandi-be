@@ -15,6 +15,10 @@ class BookView(APIView):
     permission_classes = [IsSignupComepleted]
 
     def get(self, request):
+        """
+        특정 도서 한 권 검색
+        isbn으로 DB에서 검색 후 없을 시 카카오 API로 검색, DB에 저장
+        """
         isbn = request.GET.get('isbn')
         if not isbn or (len(isbn) != 10 and len(isbn) != 13):
             return Response({'message': 'validation error'}, status.HTTP_400_BAD_REQUEST)
@@ -80,6 +84,10 @@ class BookSearchView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        """
+        도서 검색
+        카카오 API 이용
+        """
         keyword = request.GET.get('keyword')
         if not keyword:
             return Response({'message': 'validation error'}, status.HTTP_400_BAD_REQUEST)
