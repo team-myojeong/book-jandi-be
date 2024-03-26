@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 
+from bookjandi.permissions import IsSignupComepleted
 from book.models import Book
 from book.serializers import BookSerializer
 from book.schemas import BookList
@@ -11,7 +12,7 @@ from book.statics import KAKAO_BOOK_SEARCH_URL, KAKAO_BOOK_SEARCH_HEADER, KAKAO_
 
 
 class BookView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsSignupComepleted]
 
     def get(self, request):
         isbn = request.GET.get('isbn')
