@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from book.models import Book
+from book.serializers import BookSerializer
 from poll.serializers import PollSerializer
 from bookjandi.permissions import IsSignupComepleted
 
@@ -18,9 +19,18 @@ class PollView(APIView):
         request_data['level'] = request_data.get('difficulty_level')
         request_data['user'] = request.user.id
         try:
-            request_data['book'] = Book.objects.get(isbn=request_data.get('isbn')).id
+            book_data = request_data['book']
+            request_data['book'] = Book.objects.get(isbn=book_data['isbn']).id
         except Book.DoesNotExist:
-            return Response({'error': 'no data'}, status.HTTP_400_BAD_REQUEST)
+            book_data['author'] = ','.join(book_data['author_list'])
+            book_data['translator'] = ','.join(book_data['translator_list']) if book_data['translator_list'] else None
+
+            book_serializer = BookSerializer(data=book_data)
+            if book_serializer.is_valid():
+                save_book = book_serializer.save()
+                request_data['book'] = save_book.id
+            else:
+                return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
         
         poll_serializer = PollSerializer(data=request_data)
 
