@@ -19,8 +19,4 @@ class BookList:
         self.publisher = publisher
         self.translator_list = translators
         self.poll_count = poll_count
-        
-        isbn_list = isbn.split(' ')
-        if len(isbn_list) == 2:
-            isbn = isbn_list[0] if len(isbn_list[0]) == 13 else isbn_list[1]
         self.isbn = isbn
