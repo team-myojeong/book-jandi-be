@@ -14,6 +14,7 @@ class PollView(APIView):
     def post(self, request):
         """
         투표글 작성
+        DB에 존재하지 않는 책일 경우 request로 받은 책 데이터 저장
         """
         request_data = request.data.copy()
         request_data['level'] = request_data.get('difficulty_level')
