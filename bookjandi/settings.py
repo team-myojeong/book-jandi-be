@@ -54,6 +54,7 @@ INSTALLED_APPS = [
 
     'user',
     'book',
+    'poll',
 
     "allauth",
     "allauth.account",
