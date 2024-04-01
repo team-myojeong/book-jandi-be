@@ -7,8 +7,8 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
-from user.models import User, Job
-from user.serializers import SignupSerializer, JobSerializer
+from user.models import User, Job, Career
+from user.serializers import SignupSerializer, JobSerializer, CareerSerializer
 from user.permissions import IsNotSignupComepleted
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
 
@@ -136,3 +136,16 @@ class JobView(APIView):
         serialized_job_data = JobSerializer(job_data, many=True).data
 
         return Response({'job_list': serialized_job_data}, status.HTTP_200_OK)
+
+
+class CareerView(APIView):
+    permission_classes = [IsNotSignupComepleted]
+
+    def get(self, request):
+        """
+        연차 조회
+        """
+        career_data = Career.objects.all()
+        serialized_career_data = CareerSerializer(career_data, many=True).data
+
+        return Response({'career_list': serialized_career_data}, status.HTTP_200_OK)
