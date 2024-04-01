@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
-from user.models import User, Job
+from user.models import User, Job, Career
 
 
 class SignupSerializer(serializers.ModelSerializer):
@@ -29,3 +29,12 @@ class JobSerializer(serializers.ModelSerializer):
 
     job_id = serializers.IntegerField(source='id', read_only=True)
     job_text = serializers.CharField(source='name', read_only=True)
+
+
+class CareerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Career
+        fields = ['career_id', 'career_text']
+
+    career_id = serializers.IntegerField(source='id', read_only=True)
+    career_text = serializers.CharField(source='long_text', read_only=True)
