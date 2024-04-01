@@ -129,6 +129,9 @@ class JobView(APIView):
     permission_classes = [IsNotSignupComepleted]
 
     def get(self, request):
+        """
+        직무 조회
+        """
         job_data = Job.objects.all()
         serialized_job_data = JobSerializer(job_data, many=True).data
 
