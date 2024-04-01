@@ -9,7 +9,6 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 from user.models import User, Job
 from user.serializers import SignupSerializer, JobSerializer
-from user import schemas
 from user.permissions import IsNotSignupComepleted
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
 
@@ -111,9 +110,12 @@ class SignupView(APIView):
         job, career, interest 데이터 추가
         """
         user = User.objects.get(id=request.user.id)
-
-        data = schemas.Signup(**request.data).__dict__
-        signup_serializer = SignupSerializer(user, data=data, partial=True)
+        
+        request_data = request.data.copy()
+        request_data['job'] = request_data['job_id']
+        request_data['career'] = request_data['career_id']
+        
+        signup_serializer = SignupSerializer(user, data=request_data, partial=True)
 
         if signup_serializer.is_valid():
             signup_serializer.save()
