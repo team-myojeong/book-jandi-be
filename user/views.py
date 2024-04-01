@@ -7,9 +7,8 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
-from user.models import User
-from user.serializers import SignupSerializer
-from user import schemas
+from user.models import User, Job
+from user.serializers import SignupSerializer, JobSerializer
 from user.permissions import IsNotSignupComepleted
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
 
@@ -111,9 +110,12 @@ class SignupView(APIView):
         job, career, interest 데이터 추가
         """
         user = User.objects.get(id=request.user.id)
-
-        data = schemas.Signup(**request.data).__dict__
-        signup_serializer = SignupSerializer(user, data=data, partial=True)
+        
+        request_data = request.data.copy()
+        request_data['job'] = request_data['job_id']
+        request_data['career'] = request_data['career_id']
+        
+        signup_serializer = SignupSerializer(user, data=request_data, partial=True)
 
         if signup_serializer.is_valid():
             signup_serializer.save()
@@ -121,3 +123,16 @@ class SignupView(APIView):
             return Response({'success': True}, status.HTTP_200_OK)
         
         return Response({'success': False}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+class JobView(APIView):
+    permission_classes = [IsNotSignupComepleted]
+
+    def get(self, request):
+        """
+        직무 조회
+        """
+        job_data = Job.objects.all()
+        serialized_job_data = JobSerializer(job_data, many=True).data
+
+        return Response({'job_list': serialized_job_data}, status.HTTP_200_OK)
