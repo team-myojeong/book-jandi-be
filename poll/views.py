@@ -1,15 +1,51 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 
 from book.models import Book
 from book.serializers import BookSerializer
+from poll.models import Poll
 from poll.serializers import PollSerializer
 from bookjandi.permissions import IsSignupComepleted
 
 
 class PollView(APIView):
-    permission_classes = [IsSignupComepleted]
+    def get_permissions(self):
+        """
+        GET Method 요청인 경우 permission AllowAny
+        그 외의 요청은 IsSignupCompleted
+        """
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        
+        return [IsSignupComepleted()]
+
+    def get(self, request):
+        """
+        투표글 조회
+        """
+        id_ = request.GET.get('id')
+        if not id_:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            poll_data = (
+                Poll.objects
+                .select_related(
+                    'book',
+                    'user__job',
+                    'user__career'
+                )
+                .get(id=id_)
+            )
+        except Poll.DoesNotExist:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        
+        serialized_poll_data = PollSerializer(poll_data, context={'request_user': request.user}).data
+
+        return Response(serialized_poll_data, status.HTTP_200_OK)
+
 
     def post(self, request):
         """
