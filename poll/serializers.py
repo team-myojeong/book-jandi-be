@@ -21,7 +21,7 @@ class PollSerializer(serializers.ModelSerializer):
         fields = [
             'question', 'description', 'user', 'book',
             'difficulty_level', 'writer_info', 'cover', 'title', 'publisher',
-            'author_list', 'translator_list', 'is_mine'
+            'author_list', 'translator_list', 'is_mine', 'vote'
         ]
         extra_kwargs = {
             'user': {'write_only': True},
@@ -59,6 +59,22 @@ class PollSerializer(serializers.ModelSerializer):
             return False
         
         return obj.user == request_user
+    
+    vote = serializers.SerializerMethodField(read_only=True)
+    def get_vote(self, obj):
+        request_user = self.context.get('request_user')
+        poll_id = obj.id
+
+        if not request_user.is_authenticated or not request_user.job:
+            return 'none'
+
+        try:
+            grass = obj.vote_set.get(poll=poll_id, user=request_user).grass
+        except Vote.DoesNotExist:
+            return 'none'
+        
+        return grass
+
 
     def validate_difficulty_level(self, value):
         if not (1 <= value <= 3):
@@ -71,11 +87,12 @@ class PollSerializer(serializers.ModelSerializer):
 
         writer_info = data.pop('writer_info')
         is_mine = data.pop('is_mine')
+        vote = data.pop('vote')
         representation_data = {
             'poll': data,
             'writer_info': writer_info,
             'is_mine': is_mine,
-            'vote': 'none', # TODO
+            'vote': vote,
             'is_bookmark': False    # TODO
         }
 
