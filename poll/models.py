@@ -9,3 +9,24 @@ class Poll(models.Model):
 
     user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
     book = models.ForeignKey('book.Book', on_delete=models.DO_NOTHING)
+
+
+class Vote(models.Model):
+    GRASS = (
+        ('green', 'green'),
+        ('dried', 'dried')
+    )
+
+    user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
+    poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+    job = models.ForeignKey('user.Job', on_delete=models.DO_NOTHING)
+    career = models.ForeignKey('user.Career', on_delete=models.DO_NOTHING)
+
+    grass = models.CharField(choices=GRASS, max_length=5)
+
+
+class Opinion(models.Model):
+    user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
+    poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+
+    contents = models.CharField(max_length=500)
