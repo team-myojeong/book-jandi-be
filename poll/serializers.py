@@ -102,7 +102,7 @@ class PollSerializer(serializers.ModelSerializer):
 class VoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vote
-        fields = ['user', 'poll', 'grass']
+        fields = ['user', 'poll', 'job', 'career', 'grass']
 
 
 class OpinionSerializer(serializers.ModelSerializer):

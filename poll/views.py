@@ -89,9 +89,12 @@ class VoteView(APIView):
         의견도 한번에 작성 가능
         """
         request_data = request.data.copy()
+        user = request.user
 
-        request_data['user'] = request.user.id
+        request_data['user'] = user.id
         request_data['poll'] = request_data['id']
+        request_data['job'] = user.job.id
+        request_data['career'] = user.career.id
 
         try:
             poll_user_id = Poll.objects.select_related('user').get(id=request_data['poll']).user.id
