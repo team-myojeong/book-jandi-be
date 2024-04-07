@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from user.models import User
-from poll.models import Poll
+from poll.models import Poll, Vote, Opinion
 
 
 class PollWriterInfoSerializer(serializers.ModelSerializer):
@@ -80,4 +80,15 @@ class PollSerializer(serializers.ModelSerializer):
         }
 
         return representation_data
-    
+
+
+class VoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vote
+        fields = ['user', 'poll', 'grass']
+
+
+class OpinionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Opinion
+        fields = ['user', 'poll', 'contents']
