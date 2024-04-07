@@ -19,6 +19,8 @@ class Vote(models.Model):
 
     user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
     poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+    job = models.ForeignKey('user.Job', on_delete=models.DO_NOTHING)
+    career = models.ForeignKey('user.Career', on_delete=models.DO_NOTHING)
 
     grass = models.CharField(choices=GRASS, max_length=5)
 
