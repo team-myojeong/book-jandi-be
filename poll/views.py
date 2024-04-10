@@ -9,7 +9,7 @@ from django.utils import timezone
 from book.models import Book
 from book.serializers import BookSerializer
 from poll.models import Poll, Vote
-from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, RecentPollSerializer, PopularPollSerializer
+from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer
 from bookjandi.permissions import IsSignupComepleted
 
 
@@ -142,7 +142,7 @@ class RecentPollView(APIView):
             .filter(id__lt=last)
             .order_by('-created_at')[:limit]
         )
-        serialized_poll_data = RecentPollSerializer(poll_data, many=True).data
+        serialized_poll_data = PollSimpleSerializer(poll_data, many=True).data
 
         return Response({'poll_list': serialized_poll_data}, status.HTTP_200_OK)
 
