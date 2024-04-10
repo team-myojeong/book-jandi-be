@@ -7,7 +7,7 @@ from django.db import transaction
 from book.models import Book
 from book.serializers import BookSerializer
 from poll.models import Poll, Vote
-from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer
+from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, RecentPollSerializer
 from bookjandi.permissions import IsSignupComepleted
 
 
@@ -124,3 +124,22 @@ class VoteView(APIView):
                     opinion_serialiser.save()
 
         return Response({'success': True}, status.HTTP_200_OK)
+
+
+class RecentPollView(APIView):
+    def get(self, request):
+        limit = int(request.GET.get('limit'))
+        if not limit:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        last = request.GET.get('last', 0)
+
+        poll_data = (
+            Poll.objects
+            .select_related('book')
+            .prefetch_related('vote_set')
+            .filter(id__lt=last)
+            .order_by('-created_at')[:limit]
+        )
+        serialized_poll_data = RecentPollSerializer(poll_data, many=True).data
+
+        return Response({'poll_list': serialized_poll_data}, status.HTTP_200_OK)
