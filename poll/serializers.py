@@ -114,8 +114,9 @@ class OpinionSerializer(serializers.ModelSerializer):
 class RecentPollSerializer(serializers.ModelSerializer):
     class Meta:
         model = Poll
-        fields = ['id', 'cover', 'title', 'author_list', 'translator_list', 'publisher', 'vote_percentage']
+        fields = ['poll_id', 'cover', 'title', 'author_list', 'translator_list', 'publisher', 'vote_percentage']
 
+    poll_id = serializers.IntegerField(source='id', read_only=True)
     cover = serializers.URLField(source='book.cover', read_only=True)
     title = serializers.CharField(source='book.title', read_only=True)
     publisher = serializers.CharField(source='book.publisher', read_only=True)
