@@ -15,21 +15,11 @@ class PollWriterInfoSerializer(serializers.ModelSerializer):
     career = serializers.CharField(source='career.simple_text', read_only=True)
 
 
-class PollSerializer(serializers.ModelSerializer):
+class PollBookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Poll
-        fields = [
-            'question', 'description', 'user', 'book',
-            'difficulty_level', 'writer_info', 'cover', 'title', 'publisher',
-            'author_list', 'translator_list', 'is_mine', 'vote'
-        ]
-        extra_kwargs = {
-            'user': {'write_only': True},
-            'book': {'write_only': True}
-        }
+        fields = ['cover', 'title', 'author_list', 'translator_list', 'publisher']
 
-    difficulty_level = serializers.IntegerField(source='level')
-    writer_info = PollWriterInfoSerializer(source='user', read_only=True)
     cover = serializers.URLField(source='book.cover', read_only=True)
     title = serializers.CharField(source='book.title', read_only=True)
     publisher = serializers.CharField(source='book.publisher', read_only=True)
@@ -47,7 +37,24 @@ class PollSerializer(serializers.ModelSerializer):
         
         translator_list = [translator for translator in obj.book.translator.split(',') if translator]
         return translator_list
-    
+
+
+class PollSerializer(PollBookSerializer):
+    class Meta:
+        model = Poll
+        fields = [
+            'question', 'description', 'user', 'book',
+            'difficulty_level', 'writer_info', 'cover', 'title', 'publisher',
+            'author_list', 'translator_list', 'is_mine', 'vote'
+        ]
+        extra_kwargs = {
+            'user': {'write_only': True},
+            'book': {'write_only': True}
+        }
+
+    difficulty_level = serializers.IntegerField(source='level')
+    writer_info = PollWriterInfoSerializer(source='user', read_only=True)
+
     is_mine = serializers.SerializerMethodField(read_only=True)
     def get_is_mine(self, obj):
         request_user = self.context.get('request_user')
@@ -111,29 +118,13 @@ class OpinionSerializer(serializers.ModelSerializer):
         fields = ['user', 'poll', 'contents']
 
 
-class RecentPollSerializer(serializers.ModelSerializer):
+class PollSimpleSerializer(PollBookSerializer):
     class Meta:
         model = Poll
-        fields = ['id', 'cover', 'title', 'author_list', 'translator_list', 'publisher', 'vote_percentage']
+        fields = ['poll_id', 'cover', 'title', 'author_list', 'translator_list', 'publisher', 'vote_percentage']
 
-    cover = serializers.URLField(source='book.cover', read_only=True)
-    title = serializers.CharField(source='book.title', read_only=True)
-    publisher = serializers.CharField(source='book.publisher', read_only=True)
+    poll_id = serializers.IntegerField(source='id', read_only=True)
 
-    author_list = serializers.SerializerMethodField(read_only=True)
-    def get_author_list(self, obj):
-        author_list = [author for author in obj.book.author.split(',') if author]
-        return author_list
-    
-    translator_list = serializers.SerializerMethodField(read_only=True)
-    def get_translator_list(self, obj):
-        translators = obj.book.translator
-        if not translators:
-            return None
-        
-        translator_list = [translator for translator in obj.book.translator.split(',') if translator]
-        return translator_list
-    
     vote_percentage = serializers.SerializerMethodField(read_only=True)
     def get_vote_percentage(self, obj):
         vote_count = obj.vote_set.count()
@@ -142,3 +133,21 @@ class RecentPollSerializer(serializers.ModelSerializer):
             return round(green_count / vote_count * 100)
 
         return 0
+
+
+class PopularPollSerializer(PollSimpleSerializer):
+    class Meta:
+        model = Poll
+        fields = [
+            'poll_id',
+            'cover', 'title', 'author_list', 'translator_list', 'publisher',
+            'vote_percentage', 'vote_count', 'opinion_count'
+        ]
+    
+    vote_count = serializers.SerializerMethodField(read_only=True)
+    def get_vote_count(self, obj):
+        return obj.vote_count
+    
+    opinion_count = serializers.SerializerMethodField(read_only=True)
+    def get_opinion_count(self, obj):
+        return obj.opinion_count
