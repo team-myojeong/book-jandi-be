@@ -142,3 +142,49 @@ class RecentPollSerializer(serializers.ModelSerializer):
             return round(green_count / vote_count * 100)
 
         return 0
+
+
+class PopularPollSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Poll
+        fields = [
+            'poll_id',
+            'cover', 'title', 'author_list', 'translator_list', 'publisher',
+            'vote_percentage', 'vote_count', 'opinion_count'
+        ]
+
+    poll_id = serializers.IntegerField(source='id', read_only=True)
+    cover = serializers.URLField(source='book.cover', read_only=True)
+    title = serializers.CharField(source='book.title', read_only=True)
+    publisher = serializers.CharField(source='book.publisher', read_only=True)
+
+    author_list = serializers.SerializerMethodField(read_only=True)
+    def get_author_list(self, obj):
+        author_list = [author for author in obj.book.author.split(',') if author]
+        return author_list
+    
+    translator_list = serializers.SerializerMethodField(read_only=True)
+    def get_translator_list(self, obj):
+        translators = obj.book.translator
+        if not translators:
+            return None
+        
+        translator_list = [translator for translator in obj.book.translator.split(',') if translator]
+        return translator_list
+    
+    vote_percentage = serializers.SerializerMethodField(read_only=True)
+    def get_vote_percentage(self, obj):
+        vote_count = obj.vote_set.count()
+        if vote_count:
+            green_count = obj.vote_set.filter(grass='green').count()
+            return round(green_count / vote_count * 100)
+
+        return 0
+    
+    vote_count = serializers.SerializerMethodField(read_only=True)
+    def get_vote_count(self, obj):
+        return obj.vote_count
+    
+    opinion_count = serializers.SerializerMethodField(read_only=True)
+    def get_opinion_count(self, obj):
+        return obj.opinion_count

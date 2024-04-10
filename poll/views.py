@@ -3,11 +3,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.db import transaction
+from django.db.models import Count
+from django.utils import timezone
 
 from book.models import Book
 from book.serializers import BookSerializer
 from poll.models import Poll, Vote
-from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, RecentPollSerializer
+from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, RecentPollSerializer, PopularPollSerializer
 from bookjandi.permissions import IsSignupComepleted
 
 
@@ -141,5 +143,27 @@ class RecentPollView(APIView):
             .order_by('-created_at')[:limit]
         )
         serialized_poll_data = RecentPollSerializer(poll_data, many=True).data
+
+        return Response({'poll_list': serialized_poll_data}, status.HTTP_200_OK)
+
+
+class PopularPollView(APIView):
+    def get(self, request):
+        today = timezone.now()
+        start_of_week = (today - timezone.timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_week = (start_of_week + timezone.timedelta(days=6)).replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        poll_data = (
+            Poll.objects
+            .select_related('book')
+            .prefetch_related('vote_set', 'opinion_set')
+            .annotate(
+                vote_count=Count('vote'),
+                opinion_count=Count('opinion')
+            )
+            .filter(created_at__range=[start_of_week, end_of_week])
+            .order_by('-vote_count', '-created_at')[:5]
+        )
+        serialized_poll_data = PopularPollSerializer(poll_data, many=True).data
 
         return Response({'poll_list': serialized_poll_data}, status.HTTP_200_OK)
