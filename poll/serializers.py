@@ -109,3 +109,36 @@ class OpinionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Opinion
         fields = ['user', 'poll', 'contents']
+
+
+class RecentPollSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Poll
+        fields = ['id', 'cover', 'title', 'author_list', 'translator_list', 'publisher', 'vote_percentage']
+
+    cover = serializers.URLField(source='book.cover', read_only=True)
+    title = serializers.CharField(source='book.title', read_only=True)
+    publisher = serializers.CharField(source='book.publisher', read_only=True)
+
+    author_list = serializers.SerializerMethodField(read_only=True)
+    def get_author_list(self, obj):
+        author_list = [author for author in obj.book.author.split(',') if author]
+        return author_list
+    
+    translator_list = serializers.SerializerMethodField(read_only=True)
+    def get_translator_list(self, obj):
+        translators = obj.book.translator
+        if not translators:
+            return None
+        
+        translator_list = [translator for translator in obj.book.translator.split(',') if translator]
+        return translator_list
+    
+    vote_percentage = serializers.SerializerMethodField(read_only=True)
+    def get_vote_percentage(self, obj):
+        vote_count = obj.vote_set.count()
+        if vote_count:
+            green_count = obj.vote_set.filter(grass='green').count()
+            return round(green_count / vote_count * 100)
+
+        return 0
