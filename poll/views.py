@@ -11,7 +11,7 @@ from book.models import Book
 from book.serializers import BookSerializer
 from poll.models import Poll, Vote, Opinion
 from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer
-from bookjandi.permissions import IsSignupComepleted
+from bookjandi.permissions import IsSignupCompleted
 
 
 class PollView(APIView):
@@ -23,7 +23,7 @@ class PollView(APIView):
         if self.request.method == 'GET':
             return [AllowAny()]
         
-        return [IsSignupComepleted()]
+        return [IsSignupCompleted()]
 
     def get(self, request):
         """
@@ -82,7 +82,7 @@ class PollView(APIView):
 
 
 class VoteView(APIView):
-    permission_classes = [IsSignupComepleted]
+    permission_classes = [IsSignupCompleted]
 
     def post(self, request):
         """
@@ -179,7 +179,7 @@ class OpinionView(APIView):
         if self.request.method == 'GET':
             return [AllowAny()]
         
-        return [IsSignupComepleted()]
+        return [IsSignupCompleted()]
 
     def get(self, request):
         """
