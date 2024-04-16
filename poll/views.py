@@ -218,7 +218,6 @@ class OpinionView(APIView):
 
         return Response(response, status.HTTP_200_OK)
 
-
     def post(self, request):
         """
         의견 작성
