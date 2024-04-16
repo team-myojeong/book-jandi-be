@@ -30,3 +30,4 @@ class Opinion(models.Model):
     poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
 
     contents = models.CharField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)

@@ -4,13 +4,14 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.db import transaction
 from django.db.models import Count
+from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from book.models import Book
 from book.serializers import BookSerializer
 from poll.models import Poll, Vote, Opinion
 from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer
-from bookjandi.permissions import IsSignupComepleted
+from bookjandi.permissions import IsSignupCompleted
 
 
 class PollView(APIView):
@@ -22,7 +23,7 @@ class PollView(APIView):
         if self.request.method == 'GET':
             return [AllowAny()]
         
-        return [IsSignupComepleted()]
+        return [IsSignupCompleted()]
 
     def get(self, request):
         """
@@ -81,7 +82,7 @@ class PollView(APIView):
 
 
 class VoteView(APIView):
-    permission_classes = [IsSignupComepleted]
+    permission_classes = [IsSignupCompleted]
 
     def post(self, request):
         """
@@ -133,15 +134,15 @@ class RecentPollView(APIView):
         limit = int(request.GET.get('limit'))
         if not limit:
             return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
-        last = request.GET.get('last', 0)
+        last = request.GET.get('last')
 
         poll_data = (
             Poll.objects
             .select_related('book')
             .prefetch_related('vote_set')
-            .filter(id__lt=last)
-            .order_by('-created_at')[:limit]
+            .order_by('-created_at')
         )
+        poll_data = (poll_data.all() if last is None else poll_data.filter(id__lt=last))[:limit]
         serialized_poll_data = PollSimpleSerializer(poll_data, many=True).data
 
         return Response({'poll_list': serialized_poll_data}, status.HTTP_200_OK)
@@ -170,7 +171,52 @@ class PopularPollView(APIView):
     
 
 class OpinionView(APIView):
-    permission_classes = [IsSignupComepleted]
+    def get_permissions(self):
+        """
+        GET Method 요청인 경우 permission AllowAny
+        그 외의 요청은 IsSignupCompleted
+        """
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        
+        return [IsSignupCompleted()]
+
+    def get(self, request):
+        """
+        의견 조회
+        내가 작성한 의견 + 의견 목록
+        """
+        user = request.user
+
+        poll_id = request.GET.get('id')
+        limit = int(request.GET.get('limit', 10))
+        last = request.GET.get('last')
+
+        select_related = ('user', 'user__job', 'user__career', 'poll')
+        condition = Q(poll=poll_id) if last is None else Q(id__lt=last) & Q(poll=poll_id)
+
+        opinion_data = (
+            Opinion.objects
+            .select_related(*select_related)
+            .filter(condition)
+            .order_by('-created_at')[:limit]
+        )
+        serialized_opinion_data = OpinionSerializer(opinion_data, many=True).data
+
+        response = {
+            'my_opinion': None,
+            'opinion_list': serialized_opinion_data
+        }
+
+        if last is None and user.is_authenticated:    # 최초 호출
+            try:
+                opinion_data = Opinion.objects.select_related(*select_related).get(poll=poll_id, user=user)
+            except Opinion.DoesNotExist:
+                return Response(response, status.HTTP_200_OK)
+            
+            response['my_opinion'] = OpinionSerializer(opinion_data).data
+
+        return Response(response, status.HTTP_200_OK)
 
     def post(self, request):
         """

@@ -1,7 +1,7 @@
 from rest_framework.permissions import BasePermission
 
 
-class IsSignupComepleted(BasePermission):
+class IsSignupCompleted(BasePermission):
     """
     회원가입까지 완료한 사용자
     """

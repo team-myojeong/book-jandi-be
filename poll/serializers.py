@@ -115,7 +115,27 @@ class VoteSerializer(serializers.ModelSerializer):
 class OpinionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Opinion
-        fields = ['user', 'poll', 'contents']
+        fields = [
+            'id', 'user', 'poll', 'contents', 'created_at',
+            'writer_info'
+        ]
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'user': {'write_only': True},
+            'poll': {'write_only': True}
+        }
+
+    created_at = serializers.DateTimeField(format="%Y.%m.%d", read_only=True)
+    writer_info = PollWriterInfoSerializer(source='user', read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        writer_info = data.pop('writer_info')
+        data['writer_id'] = writer_info.pop('id')
+        data.update(writer_info)
+
+        return data
 
 
 class PollSimpleSerializer(PollBookSerializer):
