@@ -134,7 +134,7 @@ class RecentPollView(APIView):
         limit = int(request.GET.get('limit'))
         if not limit:
             return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
-        last = request.GET.get('last')
+        last = request.GET.get('last', 0)
 
         poll_data = (
             Poll.objects
@@ -142,7 +142,7 @@ class RecentPollView(APIView):
             .prefetch_related('vote_set')
             .order_by('-created_at')
         )
-        poll_data = (poll_data.all() if last is None else poll_data.filter(id__lt=last))[:limit]
+        poll_data = (poll_data.all() if last == 0 else poll_data.filter(id__lt=last))[:limit]
         serialized_poll_data = PollSimpleSerializer(poll_data, many=True).data
 
         return Response({'poll_list': serialized_poll_data}, status.HTTP_200_OK)
@@ -190,10 +190,10 @@ class OpinionView(APIView):
 
         poll_id = request.GET.get('id')
         limit = int(request.GET.get('limit', 10))
-        last = request.GET.get('last')
+        last = request.GET.get('last', 0)
 
         select_related = ('user', 'user__job', 'user__career', 'poll')
-        condition = Q(poll=poll_id) if last is None else Q(id__lt=last) & Q(poll=poll_id)
+        condition = Q(poll=poll_id) if last == 0 else Q(id__lt=last) & Q(poll=poll_id)
 
         opinion_data = (
             Opinion.objects
@@ -250,3 +250,23 @@ class OpinionView(APIView):
             return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        """
+        의견 삭제
+        내가 작성한 의견만 삭제 가능
+        """
+        user = request.user
+        opinion_id = request.GET.get('id')
+
+        try:
+            opinion = Opinion.objects.select_related('user').get(id=opinion_id)
+        except Opinion.DoesNotExist:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+
+        if user != opinion.user:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        
+        opinion.delete()
+
+        return Response({'success': True}, status.HTTP_200_OK)
