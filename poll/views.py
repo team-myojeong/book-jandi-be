@@ -250,3 +250,23 @@ class OpinionView(APIView):
             return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request):
+        """
+        의견 삭제
+        내가 작성한 의견만 삭제 가능
+        """
+        user = request.user
+        opinion_id = request.GET.get('id')
+
+        try:
+            opinion = Opinion.objects.select_related('user').get(id=opinion_id)
+        except Opinion.DoesNotExist:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+
+        if user != opinion.user:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        
+        opinion.delete()
+
+        return Response({'success': True}, status.HTTP_200_OK)
