@@ -134,7 +134,7 @@ class RecentPollView(APIView):
         limit = int(request.GET.get('limit'))
         if not limit:
             return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
-        last = request.GET.get('last')
+        last = request.GET.get('last', 0)
 
         poll_data = (
             Poll.objects
@@ -142,7 +142,7 @@ class RecentPollView(APIView):
             .prefetch_related('vote_set')
             .order_by('-created_at')
         )
-        poll_data = (poll_data.all() if last is None else poll_data.filter(id__lt=last))[:limit]
+        poll_data = (poll_data.all() if last == 0 else poll_data.filter(id__lt=last))[:limit]
         serialized_poll_data = PollSimpleSerializer(poll_data, many=True).data
 
         return Response({'poll_list': serialized_poll_data}, status.HTTP_200_OK)
@@ -190,10 +190,10 @@ class OpinionView(APIView):
 
         poll_id = request.GET.get('id')
         limit = int(request.GET.get('limit', 10))
-        last = request.GET.get('last')
+        last = request.GET.get('last', 0)
 
         select_related = ('user', 'user__job', 'user__career', 'poll')
-        condition = Q(poll=poll_id) if last is None else Q(id__lt=last) & Q(poll=poll_id)
+        condition = Q(poll=poll_id) if last == 0 else Q(id__lt=last) & Q(poll=poll_id)
 
         opinion_data = (
             Opinion.objects
