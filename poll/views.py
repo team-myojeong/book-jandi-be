@@ -50,7 +50,6 @@ class PollView(APIView):
 
         return Response(serialized_poll_data, status.HTTP_200_OK)
 
-
     def post(self, request):
         """
         투표글 작성
@@ -79,6 +78,35 @@ class PollView(APIView):
             return Response({'id': saved_data.id}, status.HTTP_200_OK)
         
         return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request):
+        """
+        투표글 삭제
+        투표가 하나라도 되어있으면 삭제 불가
+        """
+        user = request.user
+        poll_id = request.GET.get('id')
+
+        try:
+            poll = (
+                Poll.objects
+                .select_related('user')
+                .prefetch_related('vote_set')
+                .get(id=poll_id)
+            )
+        except Poll.DoesNotExist:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        
+        poll_user = poll.user
+        if user != poll_user:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+
+        if poll.vote_set.all():
+            return Response({'success': False}, status.HTTP_200_OK)
+ 
+        poll.delete()
+
+        return Response({'success': True}, status.HTTP_200_OK)
 
 
 class VoteView(APIView):
