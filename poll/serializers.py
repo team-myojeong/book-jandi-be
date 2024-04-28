@@ -171,3 +171,21 @@ class PopularPollSerializer(PollSimpleSerializer):
     opinion_count = serializers.SerializerMethodField(read_only=True)
     def get_opinion_count(self, obj):
         return obj.opinion_count
+
+
+class UserPollSerializer(PopularPollSerializer):
+    class Meta:
+        model = Poll
+        fields = [
+            'poll_id',
+            'cover', 'title',
+            'writer_id', 'writer_name', 'question', 'description',
+            'view_count', 'vote_count', 'opinion_count'
+        ]
+
+    writer_id = serializers.IntegerField(source='user.id', read_only=True)
+    writer_name = serializers.CharField(source='user.nickname', read_only=True)
+
+    view_count = serializers.SerializerMethodField(read_only=True)
+    def get_view_count(self, obj):
+        return 0    # TODO 조회수 추후 개발

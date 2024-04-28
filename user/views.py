@@ -1,4 +1,6 @@
 import requests
+from django.db.models.query_utils import Q
+from django.db.models import Count
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,6 +9,8 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
+from poll.models import Poll
+from poll.serializers import UserPollSerializer
 from user.models import User, Job, Career
 from user.serializers import SignupSerializer, JobSerializer, CareerSerializer
 from user.permissions import IsNotSignupComepleted
@@ -149,3 +153,39 @@ class CareerView(APIView):
         serialized_career_data = CareerSerializer(career_data, many=True).data
 
         return Response({'career_list': serialized_career_data}, status.HTTP_200_OK)
+
+
+class PollView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """
+        특정 유저가 작성한 투표글 조회
+        """
+        user_id = request.GET.get('id')
+        limit = int(request.GET.get('limit', 10))
+        last = int(request.GET.get('last', 0))
+
+        select_related = ('user', 'user__job', 'user__career', 'book')
+        condition = Q(user=user_id) if last == 0 else Q(id__lt=last) & Q(user=user_id)
+
+        poll_data = (
+            Poll.objects
+            .select_related(*select_related)
+            .annotate(
+                vote_count=Count('vote'),
+                opinion_count=Count('opinion')
+            )
+            .filter(condition)
+            .order_by('-created_at')[:limit]
+        )
+        serialized_poll_data = UserPollSerializer(poll_data, many=True).data
+
+        poll_count = Poll.objects.filter(user=user_id).count()
+        response = {
+            'count': poll_count,
+            'poll_list': serialized_poll_data
+        }
+
+        return Response(response, status.HTTP_200_OK)
+    
