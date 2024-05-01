@@ -9,8 +9,8 @@ from django.utils import timezone
 
 from book.models import Book
 from book.serializers import BookSerializer
-from poll.models import Poll, Vote, Opinion
-from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer
+from poll.models import Poll, Vote, Opinion, BookMark
+from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer, BookmarkSerializer
 from bookjandi.permissions import IsSignupCompleted
 
 
@@ -298,3 +298,36 @@ class OpinionView(APIView):
         opinion.delete()
 
         return Response({'success': True}, status.HTTP_200_OK)
+
+
+class BookmarkView(APIView):
+    permission_classes = [IsSignupCompleted]
+
+    def post(self, request):
+        """
+        북마크 하기 및 북마크 취소
+        기존에 북마크가 되어있으면 취소, 아니면 추가
+        """
+        user = request.user
+        request_data = request.data.copy()
+
+        poll_id = request_data['id']
+
+        try:
+            bookmark = BookMark.objects.get(user=user, poll=poll_id)
+        except BookMark.DoesNotExist:
+            saved_data = {
+                'user': user.id,
+                'poll': poll_id
+            }
+            bookmark_serializer = BookmarkSerializer(data=saved_data)
+            if bookmark_serializer.is_valid():
+                bookmark_serializer.save()
+
+                return Response({'is_bookmark': True}, status.HTTP_200_OK)
+
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+
+        bookmark.delete()
+
+        return Response({'is_bookmark': False}, status.HTTP_200_OK)

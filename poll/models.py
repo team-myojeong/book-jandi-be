@@ -31,3 +31,10 @@ class Opinion(models.Model):
 
     contents = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class BookMark(models.Model):
+    user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
+    poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+
+    created_at = models.DateTimeField(auto_now_add=True)

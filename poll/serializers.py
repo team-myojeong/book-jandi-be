@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from user.models import User
-from poll.models import Poll, Vote, Opinion
+from poll.models import Poll, Vote, Opinion, BookMark
 
 
 class PollWriterInfoSerializer(serializers.ModelSerializer):
@@ -237,3 +237,9 @@ class UserVotePollSerializer(UserPollSerializer):
     opinion_contents = serializers.SerializerMethodField(read_only=True)
     def get_opinion_contents(self, obj):
         return self.opinion.contents if self.opinion else None
+
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BookMark
+        fields = ['user', 'poll']
