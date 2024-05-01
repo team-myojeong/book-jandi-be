@@ -10,7 +10,7 @@ from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 from poll.models import Poll
-from poll.serializers import UserPollSerializer
+from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
 from user.serializers import SignupSerializer, JobSerializer, CareerSerializer
 from user.permissions import IsNotSignupComepleted
@@ -182,6 +182,43 @@ class PollView(APIView):
         serialized_poll_data = UserPollSerializer(poll_data, many=True).data
 
         poll_count = Poll.objects.filter(user=user_id).count()
+        response = {
+            'count': poll_count,
+            'poll_list': serialized_poll_data
+        }
+
+        return Response(response, status.HTTP_200_OK)
+
+
+class VotePollView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(selt, request):
+        """
+        특정 유저가 투표한 투표글 조회
+        """
+        user_id = request.GET.get('id')
+        limit = int(request.GET.get('limit', 10))
+        last = int(request.GET.get('last', 0))
+
+        condition = Q(vote__user=user_id) if last == 0 else Q(id__lt=last) & Q(vote__user=user_id)
+        poll_data = (
+            Poll.objects
+            .select_related(
+                'user',
+                'book'
+            )
+            .annotate(
+                vote_count=Count('vote'),
+                opinion_count=Count('opinion')
+            )
+            .filter(condition)
+            .order_by('-created_at')[:limit]
+        )
+
+        serialized_poll_data = UserVotePollSerializer(poll_data, context={'request_user': request.user}, many=True).data
+
+        poll_count = Poll.objects.filter(vote__user=user_id).count()
         response = {
             'count': poll_count,
             'poll_list': serialized_poll_data
