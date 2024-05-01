@@ -189,3 +189,51 @@ class UserPollSerializer(PopularPollSerializer):
     view_count = serializers.SerializerMethodField(read_only=True)
     def get_view_count(self, obj):
         return 0    # TODO 조회수 추후 개발
+
+
+class UserVotePollSerializer(UserPollSerializer):
+    class Meta:
+        model = Poll
+        fields = [
+            'poll_id',
+            'cover', 'title',
+            'writer_id', 'writer_name', 'question', 'description',
+            'view_count', 'vote_count', 'opinion_count',
+            'vote', 'is_opinion', 'opinion_contents'
+        ]
+
+    vote = serializers.SerializerMethodField(read_only=True)
+    def get_vote(self, obj):
+        request_user = self.context.get('request_user')
+        poll_id = obj.id
+
+        if not request_user.is_authenticated:
+            return 'none'
+
+        try:
+            grass = obj.vote_set.get(poll=poll_id, user=request_user).grass
+        except Vote.DoesNotExist:
+            return 'none'
+        
+        return grass
+
+    opinion = None
+    is_opinion = serializers.SerializerMethodField(read_only=True)
+    def get_is_opinion(self, obj):
+        request_user = self.context.get('request_user')
+        poll_id = obj.id
+        
+        if not request_user.is_authenticated:
+            return False
+        
+        try:
+            opinion = obj.opinion_set.get(poll=poll_id, user=request_user)
+        except Opinion.DoesNotExist:
+            return False
+        
+        self.opinion = opinion
+        return True
+    
+    opinion_contents = serializers.SerializerMethodField(read_only=True)
+    def get_opinion_contents(self, obj):
+        return self.opinion.contents if self.opinion else None
