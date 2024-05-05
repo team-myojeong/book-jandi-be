@@ -12,7 +12,7 @@ from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from poll.models import Poll
 from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
-from user.serializers import SignupSerializer, JobSerializer, CareerSerializer
+from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, UserSerializer
 from user.permissions import IsNotSignupComepleted
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
 
@@ -226,3 +226,16 @@ class VotePollView(APIView):
 
         return Response(response, status.HTTP_200_OK)
     
+
+class UserView(APIView):
+    def get(self, request):
+        user_id = int(request.GET.get('id'))
+
+        try:
+            user_data = User.objects.select_related('job', 'career').get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        
+        serialized_user_data = UserSerializer(user_data).data
+
+        return Response(serialized_user_data, status.HTTP_200_OK)

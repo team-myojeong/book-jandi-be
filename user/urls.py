@@ -11,4 +11,5 @@ urlpatterns = [
     path('career/', views.CareerView.as_view()),
     path('poll/list/', views.PollView.as_view()),
     path('vote/list/', views.VotePollView.as_view()),
+    path('', views.UserView.as_view()),
 ]
