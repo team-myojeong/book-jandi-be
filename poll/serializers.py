@@ -148,11 +148,11 @@ class PollSimpleSerializer(PollBookSerializer):
     vote_percentage = serializers.SerializerMethodField(read_only=True)
     def get_vote_percentage(self, obj):
         vote_count = obj.vote_set.count()
-        if vote_count:
+        if vote_count >= 5:
             green_count = obj.vote_set.filter(grass='green').count()
             return round(green_count / vote_count * 100)
 
-        return 0
+        return -1
 
 
 class PopularPollSerializer(PollSimpleSerializer):
@@ -161,16 +161,12 @@ class PopularPollSerializer(PollSimpleSerializer):
         fields = [
             'poll_id',
             'cover', 'title', 'author_list', 'translator_list', 'publisher',
-            'vote_percentage', 'vote_count', 'opinion_count'
+            'vote_percentage', 'view_count'
         ]
     
-    vote_count = serializers.SerializerMethodField(read_only=True)
-    def get_vote_count(self, obj):
-        return obj.vote_count
-    
-    opinion_count = serializers.SerializerMethodField(read_only=True)
-    def get_opinion_count(self, obj):
-        return obj.opinion_count
+    view_count = serializers.SerializerMethodField(read_only=True)
+    def get_view_count(self, obj):
+        return 0    # TODO 조회수 추후 개발
 
 
 class UserPollSerializer(PopularPollSerializer):
@@ -185,10 +181,14 @@ class UserPollSerializer(PopularPollSerializer):
 
     writer_id = serializers.IntegerField(source='user.id', read_only=True)
     writer_name = serializers.CharField(source='user.nickname', read_only=True)
-
-    view_count = serializers.SerializerMethodField(read_only=True)
-    def get_view_count(self, obj):
-        return 0    # TODO 조회수 추후 개발
+    
+    vote_count = serializers.SerializerMethodField(read_only=True)
+    def get_vote_count(self, obj):
+        return obj.vote_count
+    
+    opinion_count = serializers.SerializerMethodField(read_only=True)
+    def get_opinion_count(self, obj):
+        return obj.opinion_count
 
 
 class UserVotePollSerializer(UserPollSerializer):
