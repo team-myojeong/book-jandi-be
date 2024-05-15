@@ -141,7 +141,11 @@ class OpinionSerializer(serializers.ModelSerializer):
 class PollSimpleSerializer(PollBookSerializer):
     class Meta:
         model = Poll
-        fields = ['poll_id', 'cover', 'title', 'author_list', 'translator_list', 'publisher', 'vote_percentage']
+        fields = [
+            'poll_id',
+            'cover', 'title', 'author_list', 'translator_list', 'publisher',
+            'vote_percentage', 'view_count'
+        ]
 
     poll_id = serializers.IntegerField(source='id', read_only=True)
 
@@ -153,6 +157,10 @@ class PollSimpleSerializer(PollBookSerializer):
             return round(green_count / vote_count * 100)
 
         return -1
+    
+    view_count = serializers.SerializerMethodField(read_only=True)
+    def get_view_count(self, obj):
+        return 0    # TODO 조회수 추후 개발
 
 
 class PopularPollSerializer(PollSimpleSerializer):
@@ -163,10 +171,6 @@ class PopularPollSerializer(PollSimpleSerializer):
             'cover', 'title', 'author_list', 'translator_list', 'publisher',
             'vote_percentage', 'view_count'
         ]
-    
-    view_count = serializers.SerializerMethodField(read_only=True)
-    def get_view_count(self, obj):
-        return 0    # TODO 조회수 추후 개발
 
 
 class UserPollSerializer(PopularPollSerializer):
