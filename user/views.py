@@ -1,6 +1,6 @@
 import requests
 from django.db.models.query_utils import Q
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef, Prefetch
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,10 +9,10 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
-from poll.models import Poll
+from poll.models import Poll, BookMark, Opinion, Vote
 from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
-from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, UserSerializer
+from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, UserSerializer, BookmarkSerializer
 from user.permissions import IsNotSignupComepleted
 from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
 
@@ -239,3 +239,45 @@ class UserView(APIView):
         serialized_user_data = UserSerializer(user_data).data
 
         return Response(serialized_user_data, status.HTTP_200_OK)
+
+
+class BookmarkView(APIView):
+    def get(self, request):
+        """
+        특정 유저의 북마크 목록 조회
+        """
+        user = request.user
+        limit = int(request.GET.get('limit', 10))
+        last = int(request.GET.get('last', 0))
+
+        condition = Q(user=user) if last == 0 else Q(id__lt=last) & Q(user=user)
+
+        book_data = (
+            BookMark.objects
+            .select_related(
+                'user',
+                'poll',
+                'poll__user',
+                'poll__book'
+            )
+            .prefetch_related(
+                Prefetch('poll__vote_set', queryset=Vote.objects.filter(user=user), to_attr='user_votes')
+            )
+            .filter(condition)
+            .annotate(
+                vote_count=Count('poll__vote'),
+                opinion_count=Count('poll__opinion'),
+                is_opinion=Exists(Opinion.objects.filter(poll=OuterRef('poll'), user=user))
+            )
+            .order_by('-created_at')[:limit]
+        )
+
+        serialized_book_data = BookmarkSerializer(book_data, context={'request_user': user}, many=True).data
+
+        bookmark_count = BookMark.objects.filter(user=user).count()
+        response = {
+            'count': bookmark_count,
+            'bookmark_list': serialized_book_data
+        }
+
+        return Response(response, status.HTTP_200_OK)

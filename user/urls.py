@@ -12,4 +12,5 @@ urlpatterns = [
     path('poll/list/', views.PollView.as_view()),
     path('vote/list/', views.VotePollView.as_view()),
     path('', views.UserView.as_view()),
+    path('bookmark/list/', views.BookmarkView.as_view()),
 ]
