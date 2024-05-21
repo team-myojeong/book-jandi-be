@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from book.models import Book
 from book.serializers import BookSerializer
-from poll.models import Poll, Vote, Opinion, BookMark
+from poll.models import Poll, Vote, Opinion, Bookmark
 from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer, BookmarkSerializer
 from bookjandi.permissions import IsSignupCompleted
 
@@ -318,8 +318,8 @@ class BookmarkView(APIView):
         poll_id = request_data['id']
 
         try:
-            bookmark = BookMark.objects.get(user=user, poll=poll_id)
-        except BookMark.DoesNotExist:
+            bookmark = Bookmark.objects.get(user=user, poll=poll_id)
+        except Bookmark.DoesNotExist:
             saved_data = {
                 'user': user.id,
                 'poll': poll_id

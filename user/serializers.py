@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
-from poll.models import BookMark
+from poll.models import Bookmark
 from user.models import User, Job, Career
 
 
@@ -53,7 +53,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:
-        model = BookMark
+        model = Bookmark
         fields = [
             'id',
             'poll_id', 'cover', 'title', 'writer_id', 'writer_name', 'question', 'description',
