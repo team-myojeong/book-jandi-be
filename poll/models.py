@@ -5,6 +5,7 @@ class Poll(models.Model):
     level = models.IntegerField()
     question = models.CharField(max_length=100)
     description = models.CharField(null=True, max_length=500)
+    view_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
