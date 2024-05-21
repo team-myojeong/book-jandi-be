@@ -158,6 +158,8 @@ class VoteView(APIView):
 
 
 class RecentPollView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         limit = int(request.GET.get('limit'))
         if not limit:
@@ -177,6 +179,8 @@ class RecentPollView(APIView):
 
 
 class PopularPollView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         today = timezone.now()
         start_of_week = (today - timezone.timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)

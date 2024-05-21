@@ -9,6 +9,7 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
+from bookjandi.permissions import IsSignupCompleted
 from poll.models import Poll, BookMark, Opinion, Vote
 from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
@@ -228,6 +229,8 @@ class VotePollView(APIView):
     
 
 class UserView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         user_id = int(request.GET.get('id'))
 
@@ -242,6 +245,8 @@ class UserView(APIView):
 
 
 class BookmarkView(APIView):
+    permission_classes = [IsSignupCompleted]
+
     def get(self, request):
         """
         특정 유저의 북마크 목록 조회
