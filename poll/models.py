@@ -39,3 +39,11 @@ class BookMark(models.Model):
     poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class PollView(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+    career = models.ForeignKey('user.Career', on_delete=models.DO_NOTHING)
+    job = models.ForeignKey('user.Job', on_delete=models.DO_NOTHING)
