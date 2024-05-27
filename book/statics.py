@@ -1,4 +1,4 @@
-from bookjandi.settings import KAKAO_REST_API_KEY
+from bookjandi.statics import KAKAO_REST_API_KEY
 
 
 KAKAO_BOOK_SEARCH_URL = 'https://dapi.kakao.com/v3/search/book'
