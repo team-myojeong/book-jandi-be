@@ -10,7 +10,6 @@ class KakaoAccountAdapter(DefaultSocialAccountAdapter):
             oauth_data = sociallogin.account.extra_data
             kakao_profile = oauth_data['kakao_account']['profile']
             user.nickname = kakao_profile['nickname']
-            user.profile = kakao_profile['profile_image_url']
 
             user.save()
 
