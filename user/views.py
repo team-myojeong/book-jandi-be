@@ -10,7 +10,7 @@ from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 from bookjandi.permissions import IsSignupCompleted
-from poll.models import Poll, Bookmark, Opinion, Vote
+from poll.models import Poll, Bookmark, Opinion, Vote, PollView as PollViewModel
 from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
 from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, UserSerializer, BookmarkSerializer
@@ -272,7 +272,8 @@ class BookmarkView(APIView):
             .annotate(
                 vote_count=Count('poll__vote'),
                 opinion_count=Count('poll__opinion'),
-                is_opinion=Exists(Opinion.objects.filter(poll=OuterRef('poll'), user=user))
+                is_opinion=Exists(Opinion.objects.filter(poll=OuterRef('poll'), user=user)),
+                view_count=Count('poll__pollview')
             )
             .order_by('-created_at')[:limit]
         )

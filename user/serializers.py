@@ -84,7 +84,7 @@ class BookmarkSerializer(serializers.ModelSerializer):
     
     view_count = serializers.SerializerMethodField(read_only=True)
     def get_view_count(self, obj):
-        return 0    # TODO 조회수 추후 개발
+        return obj.view_count
     
     vote_count = serializers.SerializerMethodField(read_only=True)
     def get_vote_count(self, obj):
