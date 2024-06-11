@@ -46,7 +46,7 @@ class PollSerializer(PollBookSerializer):
             'question', 'description', 'user', 'book',
             'difficulty_level', 'writer_info', 'cover', 'title', 'publisher',
             'author_list', 'translator_list', 'is_mine', 'vote',
-            'opinion_count', 'has_result'
+            'opinion_count', 'has_result', 'is_bookmark'
         ]
         extra_kwargs = {
             'user': {'write_only': True},
@@ -90,6 +90,21 @@ class PollSerializer(PollBookSerializer):
     has_result = serializers.SerializerMethodField(read_only=True)
     def get_has_result(self, obj):
         return obj.vote_count >= 5
+    
+    is_bookmark = serializers.SerializerMethodField(read_only=True)
+    def get_is_bookmark(self, obj):
+        request_user = self.context.get('request_user')
+        poll_id = obj.id
+
+        if not request_user.is_authenticated or not request_user.job:
+            return False
+        
+        try:
+            bookmark = obj.bookmark_set.get(poll=poll_id, user=request_user)
+        except Bookmark.DoesNotExist:
+            return False
+        
+        return True
 
     def validate_difficulty_level(self, value):
         if not (1 <= value <= 3):
@@ -105,13 +120,14 @@ class PollSerializer(PollBookSerializer):
         vote = data.pop('vote')
         opinion_count = data.pop('opinion_count')
         has_result = data.pop('has_result')
+        is_bookmark = data.pop('is_bookmark')
         
         representation_data = {
             'poll': data,
             'writer_info': writer_info,
             'is_mine': is_mine,
             'vote': vote,
-            'is_bookmark': False,    # TODO
+            'is_bookmark': is_bookmark,
             'opinion_count': opinion_count,
             'has_result': has_result
         }
