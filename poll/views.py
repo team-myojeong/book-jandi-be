@@ -215,7 +215,7 @@ class PopularPollView(APIView):
                 opinion_count=Count('opinion')
             )
             .filter(created_at__range=[start_of_week, end_of_week])
-            .order_by('-vote_count', '-created_at')[:5]
+            .order_by('-vote_count', '-created_at')[:10]
         )
         serialized_poll_data = PopularPollSerializer(poll_data, many=True).data
 
