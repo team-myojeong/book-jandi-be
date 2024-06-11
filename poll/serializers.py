@@ -116,13 +116,14 @@ class OpinionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Opinion
         fields = [
-            'id', 'user', 'poll', 'contents', 'created_at',
+            'id', 'user', 'poll', 'vote', 'contents', 'created_at',
             'writer_info'
         ]
         extra_kwargs = {
             'id': {'read_only': True},
             'user': {'write_only': True},
-            'poll': {'write_only': True}
+            'poll': {'write_only': True},
+            'vote': {'write_only': True}
         }
 
     created_at = serializers.DateTimeField(format="%Y.%m.%d", read_only=True)

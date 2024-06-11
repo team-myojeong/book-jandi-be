@@ -290,6 +290,7 @@ class OpinionView(APIView):
         try:
             opinion = Opinion.objects.get(poll=request_data['poll'], user=user)
         except Opinion.DoesNotExist:
+            request_data['vote'] = vote.id
             opinion_serialiser = OpinionSerializer(data=request_data)
             if opinion_serialiser.is_valid():
                 saved_data = opinion_serialiser.save()
