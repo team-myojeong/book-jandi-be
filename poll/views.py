@@ -351,3 +351,123 @@ class BookmarkView(APIView):
         bookmark.delete()
 
         return Response({'is_bookmark': False}, status.HTTP_200_OK)
+    
+
+class PollResultView(APIView):
+    permission_classes = [IsSignupCompleted]
+
+    def get(self, request):
+        """
+        통계 조회
+
+        * 투표 비율
+        * 전체 및 각 잔디 투표 수, 의견들의 각 잔디 수
+        * 가장 많이 조회한 직무 / 경력
+        * 많이 조회한 3개 직무와 그 직무에서의 경력 비율
+        """
+        poll_id = request.GET.get('id')
+
+        vote_data = (
+            Vote.objects
+            .filter(poll=poll_id)
+            .values('grass')
+            .annotate(count=Count('id'))
+            .order_by('grass')
+        )
+        if not vote_data:
+            return Response({}, status=status.HTTP_200_OK)
+        
+        dried_vote_count = vote_data[0]['count']
+        green_vote_count = vote_data[1]['count']
+        vote_count = dried_vote_count + green_vote_count
+
+        if vote_count < 5:
+            return Response({}, status=status.HTTP_200_OK)
+
+        opinion_count_with_grass_data = (
+            Opinion.objects
+            .filter(poll=poll_id)
+            .values('vote__grass')
+            .annotate(count=Count('id'))
+            .order_by('vote__grass')
+        )
+
+        if opinion_count_with_grass_data:
+            dried_opinion_count = opinion_count_with_grass_data[0]['count']
+            green_opinion_count = opinion_count_with_grass_data[1]['count']
+        else:
+            dried_opinion_count = 0
+            green_opinion_count = 0
+        
+        top_data = (
+            PollViewModel.objects
+            .filter(poll=poll_id)
+            .values('job', 'career')
+            .annotate(
+                count=Count('id'),
+                career_simple_text=F('career__simple_text'),
+                job_name=F('job__name')
+            )
+            .order_by('-count')
+            .first()
+        )
+        
+        top_3_data = (
+            PollViewModel.objects
+            .filter(
+                poll=poll_id,
+                job__in=Subquery(
+                    PollViewModel.objects
+                    .filter(poll=poll_id)
+                    .values('job')
+                    .annotate(count=Count('id'))
+                    .values('job')[:3]
+                )
+            )
+            .values('career', 'job')
+            .annotate(
+                count=Count('id'),
+                job_name=F('job__name')
+            )
+        )
+
+        job_name_view_count = {}
+        for data in top_3_data:
+            job_name = data['job_name']
+            if job_name not in job_name_view_count:
+                job_name_view_count[job_name] = [0] * 5
+            job_name_view_count[job_name][data['job'] - 1] = data['count']
+
+        ranking_detail = []
+        job_name_view_count = dict(sorted(job_name_view_count.items(), key=lambda x: sum(x[1])))
+        for job_name, view_count_list in job_name_view_count.items():
+            total_view_count = sum(view_count_list)
+            if total_view_count > 0:
+                for idx, view_count in enumerate(view_count_list):
+                    view_count_list[idx] = round(view_count / total_view_count * 100)
+
+            ranking_detail.append(
+                {
+                    'job': job_name,
+                    'percentage': view_count_list
+                }
+            )
+
+        response = {
+            'green_percentage': round(green_vote_count / vote_count * 100),
+            'dried_percentage': round(dried_vote_count / vote_count * 100),
+            'total': {
+                'vote_count': vote_count,
+                'green_count': green_vote_count,
+                'dried_count': dried_vote_count,
+                'green_opinion_count': green_opinion_count,
+                'dried_opinion_count': dried_opinion_count
+            },
+            'ranking': {
+                'top_career': top_data['career_simple_text'],
+                'top_job': top_data['job_name'],
+                'detail': ranking_detail
+            }
+        }
+
+        return Response(response, status=status.HTTP_200_OK)

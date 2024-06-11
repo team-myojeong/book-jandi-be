@@ -29,6 +29,7 @@ class Vote(models.Model):
 class Opinion(models.Model):
     user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
     poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+    vote = models.OneToOneField('poll.Vote', on_delete=models.DO_NOTHING)
 
     contents = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
