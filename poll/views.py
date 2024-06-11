@@ -3,14 +3,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, F, Subquery
 from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from book.models import Book
 from book.serializers import BookSerializer
-from poll.models import Poll, Vote, Opinion, Bookmark
-from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer, BookmarkSerializer
+from poll.models import Poll, Vote, Opinion, Bookmark, PollView as PollViewModel
+from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer, BookmarkSerializer, PollViewSerializer
 from bookjandi.permissions import IsSignupCompleted
 
 
@@ -45,6 +45,22 @@ class PollView(APIView):
             )
         except Poll.DoesNotExist:
             return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        
+        user = request.user
+        if user.is_authenticated and user.job:
+            poll_view_data = {
+                'career': user.career.id,
+                'job': user.job.id,
+                'poll': id_
+            }
+            poll_view_serializer = PollViewSerializer(data=poll_view_data)
+            if not poll_view_serializer.is_valid():
+                return Response({'error': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+            poll_view_serializer.save()
+
+        poll_data.view_count = F('view_count') + 1
+        poll_data.save()
+        poll_data.refresh_from_db()
         
         serialized_poll_data = PollSerializer(poll_data, context={'request_user': request.user}).data
 
