@@ -50,7 +50,7 @@ class BookSearchView(APIView):
 
         book_list = [
             BookList(
-                poll_count=poll_count.get(document['isbn']),
+                poll_count=poll_count.get(document['isbn'], 0),
                 **document
             ).__dict__ for document in book_document_list
         ]
