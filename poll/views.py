@@ -41,6 +41,10 @@ class PollView(APIView):
                     'user__job',
                     'user__career'
                 )
+                .annotate(
+                    vote_count=Count('vote'),
+                    opinion_count=Count('opinion')
+                )
                 .get(id=id_)
             )
         except Poll.DoesNotExist:
