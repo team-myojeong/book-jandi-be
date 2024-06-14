@@ -57,6 +57,7 @@ class User(AbstractUser):
 
 class Job(models.Model):
     name = models.CharField(unique=True, max_length=10)
+    default_image = models.URLField(default='', blank=True)
 
 
 class Career(models.Model):

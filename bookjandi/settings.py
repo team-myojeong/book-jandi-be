@@ -212,8 +212,3 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
 }
-
-
-kakao_secrets = secrets['KAKAO']
-KAKAO_REST_API_KEY = kakao_secrets['REST_API_KEY']
-KAKAO_CALLBACK_URI = kakao_secrets['CALLBACK_URI']

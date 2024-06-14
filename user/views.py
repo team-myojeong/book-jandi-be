@@ -15,9 +15,7 @@ from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
 from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, UserSerializer, BookmarkSerializer
 from user.permissions import IsNotSignupComepleted
-from bookjandi.settings import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI
-
-BASE_URL = 'http://127.0.0.1:8000'
+from bookjandi.statics import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI, BASE_URL
 
 
 class UserAuthView(APIView):
