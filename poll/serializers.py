@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from user.models import User
-from poll.models import Poll, Vote, Opinion, BookMark
+from poll.models import Poll, Vote, Opinion, Bookmark, PollView
 
 
 class PollWriterInfoSerializer(serializers.ModelSerializer):
@@ -45,7 +45,8 @@ class PollSerializer(PollBookSerializer):
         fields = [
             'question', 'description', 'user', 'book',
             'difficulty_level', 'writer_info', 'cover', 'title', 'publisher',
-            'author_list', 'translator_list', 'is_mine', 'vote'
+            'author_list', 'translator_list', 'is_mine', 'vote',
+            'opinion_count', 'has_result', 'is_bookmark'
         ]
         extra_kwargs = {
             'user': {'write_only': True},
@@ -81,7 +82,29 @@ class PollSerializer(PollBookSerializer):
             return 'none'
         
         return grass
+    
+    opinion_count = serializers.SerializerMethodField(read_only=True)
+    def get_opinion_count(self, obj):
+        return obj.opinion_count
+    
+    has_result = serializers.SerializerMethodField(read_only=True)
+    def get_has_result(self, obj):
+        return obj.vote_count >= 5
+    
+    is_bookmark = serializers.SerializerMethodField(read_only=True)
+    def get_is_bookmark(self, obj):
+        request_user = self.context.get('request_user')
+        poll_id = obj.id
 
+        if not request_user.is_authenticated or not request_user.job:
+            return False
+        
+        try:
+            bookmark = obj.bookmark_set.get(poll=poll_id, user=request_user)
+        except Bookmark.DoesNotExist:
+            return False
+        
+        return True
 
     def validate_difficulty_level(self, value):
         if not (1 <= value <= 3):
@@ -95,12 +118,18 @@ class PollSerializer(PollBookSerializer):
         writer_info = data.pop('writer_info')
         is_mine = data.pop('is_mine')
         vote = data.pop('vote')
+        opinion_count = data.pop('opinion_count')
+        has_result = data.pop('has_result')
+        is_bookmark = data.pop('is_bookmark')
+        
         representation_data = {
             'poll': data,
             'writer_info': writer_info,
             'is_mine': is_mine,
             'vote': vote,
-            'is_bookmark': False    # TODO
+            'is_bookmark': is_bookmark,
+            'opinion_count': opinion_count,
+            'has_result': has_result
         }
 
         return representation_data
@@ -116,13 +145,14 @@ class OpinionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Opinion
         fields = [
-            'id', 'user', 'poll', 'contents', 'created_at',
+            'id', 'user', 'poll', 'vote', 'contents', 'created_at',
             'writer_info'
         ]
         extra_kwargs = {
             'id': {'read_only': True},
             'user': {'write_only': True},
-            'poll': {'write_only': True}
+            'poll': {'write_only': True},
+            'vote': {'write_only': True}
         }
 
     created_at = serializers.DateTimeField(format="%Y.%m.%d", read_only=True)
@@ -142,9 +172,9 @@ class PollSimpleSerializer(PollBookSerializer):
     class Meta:
         model = Poll
         fields = [
-            'poll_id',
+            'poll_id', 'view_count',
             'cover', 'title', 'author_list', 'translator_list', 'publisher',
-            'vote_percentage', 'view_count'
+            'vote_percentage'
         ]
 
     poll_id = serializers.IntegerField(source='id', read_only=True)
@@ -157,17 +187,13 @@ class PollSimpleSerializer(PollBookSerializer):
             return round(green_count / vote_count * 100)
 
         return -1
-    
-    view_count = serializers.SerializerMethodField(read_only=True)
-    def get_view_count(self, obj):
-        return 0    # TODO 조회수 추후 개발
 
 
 class PopularPollSerializer(PollSimpleSerializer):
     class Meta:
         model = Poll
         fields = [
-            'poll_id',
+            'poll_id', 'view_count',
             'cover', 'title', 'author_list', 'translator_list', 'publisher',
             'vote_percentage', 'view_count'
         ]
@@ -177,7 +203,7 @@ class UserPollSerializer(PopularPollSerializer):
     class Meta:
         model = Poll
         fields = [
-            'poll_id',
+            'poll_id', 'view_count',
             'cover', 'title',
             'writer_id', 'writer_name', 'question', 'description',
             'view_count', 'vote_count', 'opinion_count'
@@ -199,7 +225,7 @@ class UserVotePollSerializer(UserPollSerializer):
     class Meta:
         model = Poll
         fields = [
-            'poll_id',
+            'poll_id', 'view_count',
             'cover', 'title',
             'writer_id', 'writer_name', 'question', 'description',
             'view_count', 'vote_count', 'opinion_count',
@@ -245,5 +271,11 @@ class UserVotePollSerializer(UserPollSerializer):
 
 class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:
-        model = BookMark
+        model = Bookmark
         fields = ['user', 'poll']
+
+
+class PollViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PollView
+        fields = ['poll', 'career', 'job']

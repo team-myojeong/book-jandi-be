@@ -5,6 +5,7 @@ class Poll(models.Model):
     level = models.IntegerField()
     question = models.CharField(max_length=100)
     description = models.CharField(null=True, max_length=500)
+    view_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
@@ -28,13 +29,22 @@ class Vote(models.Model):
 class Opinion(models.Model):
     user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
     poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+    vote = models.OneToOneField('poll.Vote', on_delete=models.DO_NOTHING)
 
     contents = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-class BookMark(models.Model):
+class Bookmark(models.Model):
     user = models.ForeignKey('user.User', on_delete=models.DO_NOTHING)
     poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class PollView(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    poll = models.ForeignKey('poll.Poll', on_delete=models.DO_NOTHING)
+    career = models.ForeignKey('user.Career', on_delete=models.DO_NOTHING)
+    job = models.ForeignKey('user.Job', on_delete=models.DO_NOTHING)
