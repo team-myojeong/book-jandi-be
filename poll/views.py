@@ -183,7 +183,7 @@ class RecentPollView(APIView):
         limit = int(request.GET.get('limit'))
         if not limit:
             return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
-        last = request.GET.get('last', 0)
+        last = int(request.GET.get('last', 0))
 
         poll_data = (
             Poll.objects
@@ -241,7 +241,7 @@ class OpinionView(APIView):
 
         poll_id = request.GET.get('id')
         limit = int(request.GET.get('limit', 10))
-        last = request.GET.get('last', 0)
+        last = int(request.GET.get('last', 0))
 
         select_related = ('user', 'user__job', 'user__career', 'poll')
         condition = Q(poll=poll_id) if last == 0 else Q(id__lt=last) & Q(poll=poll_id)
@@ -259,7 +259,7 @@ class OpinionView(APIView):
             'opinion_list': serialized_opinion_data
         }
 
-        if last is None and user.is_authenticated:    # 최초 호출
+        if last == 0 and user.is_authenticated:    # 최초 호출
             try:
                 opinion_data = Opinion.objects.select_related(*select_related).get(poll=poll_id, user=user)
             except Opinion.DoesNotExist:
