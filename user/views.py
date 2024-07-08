@@ -129,7 +129,7 @@ class SignupView(APIView):
     
 
 class JobView(APIView):
-    permission_classes = [IsNotSignupComepleted]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         """
@@ -142,7 +142,7 @@ class JobView(APIView):
 
 
 class CareerView(APIView):
-    permission_classes = [IsNotSignupComepleted]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         """
