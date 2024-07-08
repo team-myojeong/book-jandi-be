@@ -160,18 +160,17 @@ class VoteView(APIView):
         except Vote.DoesNotExist:
             vote_serializer = VoteSerializer(data=request_data)
 
-            contents = request_data.get('contents')
-            if contents:
-                opinion_serialiser = OpinionSerializer(data=request_data)
-                if not opinion_serialiser.is_valid():
-                    return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
-
             if not vote_serializer.is_valid():
                 return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             with transaction.atomic():
-                vote_serializer.save()
-                if contents:
+                saved_vote = vote_serializer.save()
+                if request_data.get('contents'):
+                    request_data['vote'] = saved_vote.id
+                    opinion_serialiser = OpinionSerializer(data=request_data)
+                    if not opinion_serialiser.is_valid():
+                        return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        
                     opinion_serialiser.save()
 
         return Response({'success': True}, status.HTTP_200_OK)
