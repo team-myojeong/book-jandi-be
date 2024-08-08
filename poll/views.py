@@ -42,8 +42,8 @@ class PollView(APIView):
                     'user__career'
                 )
                 .annotate(
-                    vote_count=Count('vote'),
-                    opinion_count=Count('opinion')
+                    vote_count=Count('vote', distinct=True),
+                    opinion_count=Count('opinion', distinct=True)
                 )
                 .get(id=id_)
             )
@@ -210,8 +210,8 @@ class PopularPollView(APIView):
             .select_related('book')
             .prefetch_related('vote_set', 'opinion_set')
             .annotate(
-                vote_count=Count('vote'),
-                opinion_count=Count('opinion')
+                vote_count=Count('vote', distinct=True),
+                opinion_count=Count('opinion', distinct=True)
             )
             .filter(created_at__range=[start_of_week, end_of_week])
             .order_by('-vote_count', '-created_at')[:10]

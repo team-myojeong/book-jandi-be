@@ -172,8 +172,8 @@ class PollView(APIView):
             Poll.objects
             .select_related(*select_related)
             .annotate(
-                vote_count=Count('vote'),
-                opinion_count=Count('opinion')
+                vote_count=Count('vote', distinct=True),
+                opinion_count=Count('opinion', distinct=True)
             )
             .filter(condition)
             .order_by('-created_at')[:limit]
@@ -208,8 +208,8 @@ class VotePollView(APIView):
                 'book'
             )
             .annotate(
-                vote_count=Count('vote'),
-                opinion_count=Count('opinion')
+                vote_count=Count('vote', distinct=True),
+                opinion_count=Count('opinion',distinct=True)
             )
             .filter(condition)
             .order_by('-created_at')[:limit]
@@ -268,10 +268,10 @@ class BookmarkView(APIView):
             )
             .filter(condition)
             .annotate(
-                vote_count=Count('poll__vote'),
-                opinion_count=Count('poll__opinion'),
+                vote_count=Count('poll__vote', distinct=True),
+                opinion_count=Count('poll__opinion', distinct=True),
                 is_opinion=Exists(Opinion.objects.filter(poll=OuterRef('poll'), user=user)),
-                view_count=Count('poll__pollview')
+                view_count=Count('poll__pollview', distinct=True)
             )
             .order_by('-created_at')[:limit]
         )
