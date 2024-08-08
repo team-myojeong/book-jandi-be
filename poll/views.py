@@ -42,8 +42,8 @@ class PollView(APIView):
                     'user__career'
                 )
                 .annotate(
-                    vote_count=Count('vote'),
-                    opinion_count=Count('opinion')
+                    vote_count=Count('vote', distinct=True),
+                    opinion_count=Count('opinion', distinct=True)
                 )
                 .get(id=id_)
             )
@@ -160,18 +160,17 @@ class VoteView(APIView):
         except Vote.DoesNotExist:
             vote_serializer = VoteSerializer(data=request_data)
 
-            contents = request_data.get('contents')
-            if contents:
-                opinion_serialiser = OpinionSerializer(data=request_data)
-                if not opinion_serialiser.is_valid():
-                    return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
-
             if not vote_serializer.is_valid():
                 return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             with transaction.atomic():
-                vote_serializer.save()
-                if contents:
+                saved_vote = vote_serializer.save()
+                if request_data.get('contents'):
+                    request_data['vote'] = saved_vote.id
+                    opinion_serialiser = OpinionSerializer(data=request_data)
+                    if not opinion_serialiser.is_valid():
+                        return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        
                     opinion_serialiser.save()
 
         return Response({'success': True}, status.HTTP_200_OK)
@@ -184,7 +183,7 @@ class RecentPollView(APIView):
         limit = int(request.GET.get('limit'))
         if not limit:
             return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
-        last = request.GET.get('last', 0)
+        last = int(request.GET.get('last', 0))
 
         poll_data = (
             Poll.objects
@@ -211,8 +210,8 @@ class PopularPollView(APIView):
             .select_related('book')
             .prefetch_related('vote_set', 'opinion_set')
             .annotate(
-                vote_count=Count('vote'),
-                opinion_count=Count('opinion')
+                vote_count=Count('vote', distinct=True),
+                opinion_count=Count('opinion', distinct=True)
             )
             .filter(created_at__range=[start_of_week, end_of_week])
             .order_by('-vote_count', '-created_at')[:10]
@@ -242,7 +241,7 @@ class OpinionView(APIView):
 
         poll_id = request.GET.get('id')
         limit = int(request.GET.get('limit', 10))
-        last = request.GET.get('last', 0)
+        last = int(request.GET.get('last', 0))
 
         select_related = ('user', 'user__job', 'user__career', 'poll')
         condition = Q(poll=poll_id) if last == 0 else Q(id__lt=last) & Q(poll=poll_id)
@@ -260,7 +259,7 @@ class OpinionView(APIView):
             'opinion_list': serialized_opinion_data
         }
 
-        if last is None and user.is_authenticated:    # 최초 호출
+        if last == 0 and user.is_authenticated:    # 최초 호출
             try:
                 opinion_data = Opinion.objects.select_related(*select_related).get(poll=poll_id, user=user)
             except Opinion.DoesNotExist:
@@ -371,38 +370,22 @@ class PollResultView(APIView):
         * 많이 조회한 3개 직무와 그 직무에서의 경력 비율
         """
         poll_id = request.GET.get('id')
-
-        vote_data = (
-            Vote.objects
-            .filter(poll=poll_id)
-            .values('grass')
-            .annotate(count=Count('id'))
-            .order_by('grass')
-        )
-        if not vote_data:
-            return Response({}, status=status.HTTP_200_OK)
         
-        dried_vote_count = vote_data[0]['count']
-        green_vote_count = vote_data[1]['count']
+        try:
+            poll = Poll.objects.get(id=poll_id)
+        except Poll.DoesNotExist:
+            return Response({'error': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+        is_mine = poll.user == request.user
+
+        dried_vote_count = Vote.objects.filter(poll=poll_id, grass='dried').count()
+        green_vote_count = Vote.objects.filter(poll=poll_id, grass='green').count()
         vote_count = dried_vote_count + green_vote_count
 
-        if vote_count < 5:
+        if vote_count < 5 and not is_mine:
             return Response({}, status=status.HTTP_200_OK)
 
-        opinion_count_with_grass_data = (
-            Opinion.objects
-            .filter(poll=poll_id)
-            .values('vote__grass')
-            .annotate(count=Count('id'))
-            .order_by('vote__grass')
-        )
-
-        if opinion_count_with_grass_data:
-            dried_opinion_count = opinion_count_with_grass_data[0]['count']
-            green_opinion_count = opinion_count_with_grass_data[1]['count']
-        else:
-            dried_opinion_count = 0
-            green_opinion_count = 0
+        dried_opinion_count = Opinion.objects.filter(poll=poll_id, vote__grass='dried').count()
+        green_opinion_count = Opinion.objects.filter(poll=poll_id, vote__grass='green').count()
         
         top_data = (
             PollViewModel.objects
@@ -426,10 +409,11 @@ class PollResultView(APIView):
                     .filter(poll=poll_id)
                     .values('job')
                     .annotate(count=Count('id'))
+                    .order_by('-count')
                     .values('job')[:3]
                 )
             )
-            .values('career', 'job')
+            .values('job', 'career')
             .annotate(
                 count=Count('id'),
                 job_name=F('job__name')
@@ -441,10 +425,10 @@ class PollResultView(APIView):
             job_name = data['job_name']
             if job_name not in job_name_view_count:
                 job_name_view_count[job_name] = [0] * 5
-            job_name_view_count[job_name][data['job'] - 1] = data['count']
+            job_name_view_count[job_name][data['career'] - 1] = data['count']
 
         ranking_detail = []
-        job_name_view_count = dict(sorted(job_name_view_count.items(), key=lambda x: sum(x[1])))
+        job_name_view_count = dict(sorted(job_name_view_count.items(), key=lambda x: -sum(x[1])))
         for job_name, view_count_list in job_name_view_count.items():
             total_view_count = sum(view_count_list)
             if total_view_count > 0:
