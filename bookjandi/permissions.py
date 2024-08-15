@@ -15,3 +15,20 @@ class IsSignupCompleted(BasePermission):
             return True
         
         return False
+
+
+class AllowAnyGetIsSignupCompletedElse(BasePermission):
+    """
+    GET Method 요청인 경우 AllowAny
+    그 외의 요청은 IsSignupCompleted
+    """
+    def has_permission(self, request, view):
+        if request.method == 'GET':
+            return True
+        
+        user = request.user
+
+        if user.is_authenticated and user.job:
+            return True
+        
+        return False

@@ -19,6 +19,7 @@ from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
 from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, UserSerializer, BookmarkSerializer
 from user.permissions import IsNotSignupComepleted
+from bookjandi.permissions import AllowAnyGetIsSignupCompletedElse
 from bookjandi.statics import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI, BASE_URL, AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_BUCKET_NAME, AWS_S3_URL
 
 
@@ -228,23 +229,15 @@ class VotePollView(APIView):
     
 
 class UserView(APIView):
+    permission_classes = [AllowAnyGetIsSignupCompletedElse]
+
     _S3 = boto3.client(
         service_name="s3",
         region_name="ap-northeast-2",
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_KEY
     )
-
-    def get_permissions(self):
-        """
-        GET Method 요청인 경우 permission AllowAny
-        그 외의 요청은 IsSignupCompleted
-        """
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        
-        return [IsSignupCompleted()]
-
+    
     def get(self, request):
         user_id = int(request.GET.get('id'))
 
