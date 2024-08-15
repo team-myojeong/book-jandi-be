@@ -116,14 +116,11 @@ class SignupView(APIView):
         유저 정보 업데이트
         job, career, interest 데이터 추가
         """
-        user = User.objects.get(id=request.user.id)
-        
         request_data = request.data.copy()
         request_data['job'] = request_data['job_id']
         request_data['career'] = request_data['career_id']
         
-        signup_serializer = SignupSerializer(user, data=request_data, partial=True)
-
+        signup_serializer = SignupSerializer(request.user, data=request_data, partial=True)
         if signup_serializer.is_valid():
             signup_serializer.save()
             
@@ -261,8 +258,6 @@ class UserView(APIView):
         return Response(serialized_user_data, status.HTTP_200_OK)
     
     def put(self, request):
-        user = User.objects.get(id=request.user.id)
-        
         request_data = request.data.copy()
         request_data['job'] = int(request_data['job_id'])
         request_data['career'] = int(request_data['career_id'])
@@ -290,7 +285,7 @@ class UserView(APIView):
         else:
             request_data['profile'] = ''
 
-        signup_serializer = SignupSerializer(user, data=request_data, partial=True)
+        signup_serializer = SignupSerializer(request.user, data=request_data, partial=True)
         if signup_serializer.is_valid():
             signup_serializer.save()
             
