@@ -8,9 +8,10 @@ from user.models import User, Job, Career
 class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['job', 'career', 'profile']
+        fields = ['job', 'career', 'profile', 'nickname']
         extra_kwargs = {
-            'profile': {'required': False}
+            'profile': {'required': False},
+            'nickname': {'required': False}
         }
 
     def validate(self, data):
@@ -29,6 +30,9 @@ class SignupSerializer(serializers.ModelSerializer):
         instance.profile = validated_data['profile'] if validated_data.get('profile') else validated_data['job'].default_image
         instance.job = validated_data['job']
         instance.career = validated_data['career']
+
+        if validated_data.get('nickname'):
+            instance.nickname = validated_data['nickname']
 
         instance.save()
 

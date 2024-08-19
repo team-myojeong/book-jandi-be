@@ -254,6 +254,7 @@ class UserView(APIView):
         request_data = request.data.copy()
         request_data['job'] = int(request_data['job_id'])
         request_data['career'] = int(request_data['career_id'])
+        request_data['nickname'] = request_data['name']
 
         if profile := request_data.get('profile'):
             ext = profile.name.split('.')[-1]
