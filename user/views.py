@@ -1,4 +1,8 @@
+from uuid import uuid4
+from datetime import datetime
+
 import requests
+import boto3
 from django.db.models.query_utils import Q
 from django.db.models import Count, Exists, OuterRef, Prefetch
 from rest_framework import status
@@ -10,12 +14,13 @@ from allauth.socialaccount.providers.kakao import views as kakao_view
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 from bookjandi.permissions import IsSignupCompleted
-from poll.models import Poll, Bookmark, Opinion, Vote, PollView as PollViewModel
+from poll.models import Poll, Bookmark, Opinion, Vote
 from poll.serializers import UserPollSerializer, UserVotePollSerializer
 from user.models import User, Job, Career
 from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, UserSerializer, BookmarkSerializer
 from user.permissions import IsNotSignupComepleted
-from bookjandi.statics import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI, BASE_URL
+from bookjandi.permissions import AllowAnyGetIsSignupCompletedElse
+from bookjandi.statics import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI, BASE_URL, AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_BUCKET_NAME, AWS_S3_URL
 
 
 class UserAuthView(APIView):
@@ -112,14 +117,11 @@ class SignupView(APIView):
         유저 정보 업데이트
         job, career, interest 데이터 추가
         """
-        user = User.objects.get(id=request.user.id)
-        
         request_data = request.data.copy()
         request_data['job'] = request_data['job_id']
         request_data['career'] = request_data['career_id']
         
-        signup_serializer = SignupSerializer(user, data=request_data, partial=True)
-
+        signup_serializer = SignupSerializer(request.user, data=request_data, partial=True)
         if signup_serializer.is_valid():
             signup_serializer.save()
             
@@ -227,8 +229,15 @@ class VotePollView(APIView):
     
 
 class UserView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAnyGetIsSignupCompletedElse]
 
+    _S3 = boto3.client(
+        service_name="s3",
+        region_name="ap-northeast-2",
+        aws_access_key_id=AWS_ACCESS_KEY,
+        aws_secret_access_key=AWS_SECRET_KEY
+    )
+    
     def get(self, request):
         user_id = int(request.GET.get('id'))
 
@@ -240,7 +249,44 @@ class UserView(APIView):
         serialized_user_data = UserSerializer(user_data).data
 
         return Response(serialized_user_data, status.HTTP_200_OK)
+    
+    def put(self, request):
+        request_data = request.data.copy()
+        request_data['job'] = int(request_data['job_id'])
+        request_data['career'] = int(request_data['career_id'])
+        request_data['nickname'] = request_data['name']
 
+        if profile := request_data.get('profile'):
+            ext = profile.name.split('.')[-1]
+            if ext.lower() not in ('jpg', 'jpeg', 'png'):
+                return Response({'error': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            file_path = f'bookgrass/profile/{datetime.now().strftime("%Y%m%d")[2:]}/{uuid4()}.{ext}'
+            try:
+                self._S3.upload_fileobj(
+                    profile.file,
+                    AWS_BUCKET_NAME,
+                    file_path,
+                    ExtraArgs={
+                        'ACL': 'public-read',
+                        'ContentType': profile.content_type
+                    }
+                )
+            except Exception:
+                return Response({'error': 'error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            request_data['profile'] = AWS_S3_URL + file_path
+        else:
+            request_data['profile'] = ''
+
+        signup_serializer = SignupSerializer(request.user, data=request_data, partial=True)
+        if signup_serializer.is_valid():
+            signup_serializer.save()
+            
+            return Response({'success': True}, status.HTTP_200_OK)
+
+        return Response({'success': False}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
 class BookmarkView(APIView):
     permission_classes = [IsSignupCompleted]

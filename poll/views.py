@@ -11,19 +11,11 @@ from book.models import Book
 from book.serializers import BookSerializer
 from poll.models import Poll, Vote, Opinion, Bookmark, PollView as PollViewModel
 from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer, BookmarkSerializer, PollViewSerializer
-from bookjandi.permissions import IsSignupCompleted
+from bookjandi.permissions import IsSignupCompleted, AllowAnyGetIsSignupCompletedElse
 
 
 class PollView(APIView):
-    def get_permissions(self):
-        """
-        GET Method 요청인 경우 permission AllowAny
-        그 외의 요청은 IsSignupCompleted
-        """
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        
-        return [IsSignupCompleted()]
+    permission_classes = [AllowAnyGetIsSignupCompletedElse]
 
     def get(self, request):
         """
@@ -222,15 +214,7 @@ class PopularPollView(APIView):
     
 
 class OpinionView(APIView):
-    def get_permissions(self):
-        """
-        GET Method 요청인 경우 permission AllowAny
-        그 외의 요청은 IsSignupCompleted
-        """
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        
-        return [IsSignupCompleted()]
+    permission_classes = [AllowAnyGetIsSignupCompletedElse]
 
     def get(self, request):
         """
