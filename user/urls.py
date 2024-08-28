@@ -13,4 +13,6 @@ urlpatterns = [
     path('vote/list/', views.VotePollView.as_view()),
     path('', views.UserView.as_view()),
     path('bookmark/list/', views.BookmarkView.as_view()),
+
+    path('test/login/', views.login_test)
 ]

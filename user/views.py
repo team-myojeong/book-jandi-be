@@ -23,6 +23,13 @@ from bookjandi.permissions import AllowAnyGetIsSignupCompletedElse
 from bookjandi.statics import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI, BASE_URL, AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_BUCKET_NAME, AWS_S3_URL
 
 
+from django.shortcuts import redirect
+def login_test(request):
+    return redirect(
+        f"https://kauth.kakao.com/oauth/authorize?client_id={KAKAO_REST_API_KEY}&redirect_uri={KAKAO_CALLBACK_URI}&response_type=code"
+    )
+
+
 class UserAuthView(APIView):
     permission_classes = [AllowAny]
 
