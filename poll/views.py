@@ -12,6 +12,7 @@ from book.serializers import BookSerializer
 from poll.models import Poll, Vote, Opinion, Bookmark, PollView as PollViewModel
 from poll.serializers import PollSerializer, VoteSerializer, OpinionSerializer, PollSimpleSerializer, PopularPollSerializer, BookmarkSerializer, PollViewSerializer
 from bookjandi.permissions import IsSignupCompleted, AllowAnyGetIsSignupCompletedElse
+from bookjandi.exceptions import RequestValidationError, ObjectNotFound, InsertError, HasNoPermission
 
 
 class PollView(APIView):
@@ -21,9 +22,10 @@ class PollView(APIView):
         """
         투표글 조회
         """
-        id_ = request.GET.get('id')
-        if not id_:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        try:
+            id_ = int(request.GET.get('id'))
+        except ValueError:
+            raise RequestValidationError
         
         try:
             poll_data = (
@@ -40,7 +42,7 @@ class PollView(APIView):
                 .get(id=id_)
             )
         except Poll.DoesNotExist:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            raise ObjectNotFound
         
         user = request.user
         if user.is_authenticated and user.job:
@@ -51,7 +53,7 @@ class PollView(APIView):
             }
             poll_view_serializer = PollViewSerializer(data=poll_view_data)
             if not poll_view_serializer.is_valid():
-                return Response({'error': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+                raise InsertError
             poll_view_serializer.save()
 
         poll_data.view_count = F('view_count') + 1
@@ -81,7 +83,7 @@ class PollView(APIView):
                 save_book = book_serializer.save()
                 request_data['book'] = save_book.id
             else:
-                return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+                raise RequestValidationError
         
         poll_serializer = PollSerializer(data=request_data)
 
@@ -89,7 +91,7 @@ class PollView(APIView):
             saved_data = poll_serializer.save()
             return Response({'id': saved_data.id}, status.HTTP_200_OK)
         
-        return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        raise RequestValidationError
 
     def delete(self, request):
         """
@@ -107,11 +109,11 @@ class PollView(APIView):
                 .get(id=poll_id)
             )
         except Poll.DoesNotExist:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            raise ObjectNotFound
         
         poll_user = poll.user
         if user != poll_user:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            raise HasNoPermission
 
         if poll.vote_set.all():
             return Response({'success': False}, status.HTTP_200_OK)
@@ -142,18 +144,18 @@ class VoteView(APIView):
         try:
             poll_user_id = Poll.objects.select_related('user').get(id=request_data['poll']).user.id
             if request_data['user'] == poll_user_id:
-                return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
-        except:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+                raise HasNoPermission
+        except Poll.DoesNotExist:
+            raise ObjectNotFound
 
         try:
             Vote.objects.get(poll=request_data['poll'], user=request_data['user'])
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            raise RequestValidationError
         except Vote.DoesNotExist:
             vote_serializer = VoteSerializer(data=request_data)
 
             if not vote_serializer.is_valid():
-                return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+                raise RequestValidationError
             
             with transaction.atomic():
                 saved_vote = vote_serializer.save()
@@ -161,7 +163,7 @@ class VoteView(APIView):
                     request_data['vote'] = saved_vote.id
                     opinion_serialiser = OpinionSerializer(data=request_data)
                     if not opinion_serialiser.is_valid():
-                        return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        raise RequestValidationError
                         
                     opinion_serialiser.save()
 
@@ -172,10 +174,11 @@ class RecentPollView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        limit = int(request.GET.get('limit'))
-        if not limit:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
-        last = int(request.GET.get('last', 0))
+        try:
+            limit = int(request.GET.get('limit', 0))
+            last = int(request.GET.get('last', 0))
+        except ValueError:
+            raise RequestValidationError
 
         poll_data = (
             Poll.objects
@@ -272,10 +275,10 @@ class OpinionView(APIView):
         try:
             vote = Vote.objects.get(poll=request_data['poll'], user=user)
         except Vote.DoesNotExist:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            return HasNoPermission
         
         try:
-            opinion = Opinion.objects.get(poll=request_data['poll'], user=user)
+            Opinion.objects.get(poll=request_data['poll'], user=user)
         except Opinion.DoesNotExist:
             request_data['vote'] = vote.id
             opinion_serialiser = OpinionSerializer(data=request_data)
@@ -283,25 +286,24 @@ class OpinionView(APIView):
                 saved_data = opinion_serialiser.save()
                 return Response({'id': saved_data.id}, status.HTTP_200_OK)
             
-            return Response({'error': 'error'}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return RequestValidationError
 
-        return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        return RequestValidationError
 
     def delete(self, request):
         """
         의견 삭제
         내가 작성한 의견만 삭제 가능
         """
-        user = request.user
         opinion_id = request.GET.get('id')
 
         try:
             opinion = Opinion.objects.select_related('user').get(id=opinion_id)
         except Opinion.DoesNotExist:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            raise ObjectNotFound
 
-        if user != opinion.user:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+        if request.user != opinion.user:
+            raise HasNoPermission
         
         opinion.delete()
 
@@ -334,7 +336,7 @@ class BookmarkView(APIView):
 
                 return Response({'is_bookmark': True}, status.HTTP_200_OK)
 
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            return RequestValidationError
 
         bookmark.delete()
 
@@ -358,7 +360,7 @@ class PollResultView(APIView):
         try:
             poll = Poll.objects.get(id=poll_id)
         except Poll.DoesNotExist:
-            return Response({'error': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+            raise ObjectNotFound
         is_mine = poll.user == request.user
 
         dried_vote_count = Vote.objects.filter(poll=poll_id, grass='dried').count()
