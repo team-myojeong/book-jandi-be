@@ -21,6 +21,7 @@ from user.serializers import SignupSerializer, JobSerializer, CareerSerializer, 
 from user.permissions import IsNotSignupComepleted
 from bookjandi.permissions import AllowAnyGetIsSignupCompletedElse
 from bookjandi.statics import KAKAO_REST_API_KEY, KAKAO_CALLBACK_URI, BASE_URL, AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_BUCKET_NAME, AWS_S3_URL
+from bookjandi.exceptions import ServerError, RequestValidationError, ObjectNotFound
 
 
 class UserAuthView(APIView):
@@ -45,7 +46,7 @@ class UserAuthView(APIView):
         toekn_request = requests.get(f'https://kauth.kakao.com/oauth/token', params=params)
         toekn_request_json = toekn_request.json()
         if toekn_request.status_code != 200:
-            return Response(toekn_request_json, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            raise ServerError
         
         access_token = toekn_request_json.get('access_token')
 
@@ -55,7 +56,7 @@ class UserAuthView(APIView):
         profile_request = requests.get('https://kapi.kakao.com/v2/user/me', headers={'Authorization': f'Bearer {access_token}'})
         profile_request_json = profile_request.json()
         if profile_request.status_code != 200:
-            return Response(profile_request_json, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            raise ServerError
         
         kakao_account = profile_request_json.get('kakao_account')
         email = kakao_account.get('email')
@@ -79,8 +80,8 @@ class UserAuthView(APIView):
             'code': code
         }
         accept = requests.post(f'{BASE_URL}/user/login/finish/', data=data)
-        if (accept_status := accept.status_code) != 200:
-            return Response({'message': f"failed to {'signin' if signup_complete else 'signup'}"}, status=accept_status)
+        if accept.status_code != 200:
+            raise ServerError
         accept_json = accept.json()
 
         refresh_token = accept.headers['Set-Cookie'].split('refresh_token=')[-1].split(';')[0]
@@ -239,27 +240,31 @@ class UserView(APIView):
     )
     
     def get(self, request):
-        user_id = int(request.GET.get('id'))
-
         try:
+            user_id = int(request.GET.get('id'))
             user_data = User.objects.select_related('job', 'career').get(id=user_id)
+        except ValueError:
+            raise RequestValidationError
         except User.DoesNotExist:
-            return Response({'error': 'error'}, status.HTTP_400_BAD_REQUEST)
+            raise ObjectNotFound
         
         serialized_user_data = UserSerializer(user_data).data
 
         return Response(serialized_user_data, status.HTTP_200_OK)
     
     def put(self, request):
-        request_data = request.data.copy()
-        request_data['job'] = int(request_data['job_id'])
-        request_data['career'] = int(request_data['career_id'])
-        request_data['nickname'] = request_data['name']
+        try:
+            request_data = request.data.copy()
+            request_data['job'] = int(request_data['job_id'])
+            request_data['career'] = int(request_data['career_id'])
+            request_data['nickname'] = request_data['name']
+        except ValueError:
+            raise RequestValidationError
 
         if profile := request_data.get('profile'):
             ext = profile.name.split('.')[-1]
             if ext.lower() not in ('jpg', 'jpeg', 'png'):
-                return Response({'error': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+                raise RequestValidationError
             
             file_path = f'bookgrass/profile/{datetime.now().strftime("%Y%m%d")[2:]}/{uuid4()}.{ext}'
             try:
@@ -273,7 +278,7 @@ class UserView(APIView):
                     }
                 )
             except Exception:
-                return Response({'error': 'error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                raise ServerError
 
             request_data['profile'] = AWS_S3_URL + file_path
         else:
@@ -285,7 +290,7 @@ class UserView(APIView):
             
             return Response({'success': True}, status.HTTP_200_OK)
 
-        return Response({'success': False}, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        raise RequestValidationError
         
 
 class BookmarkView(APIView):
@@ -296,8 +301,11 @@ class BookmarkView(APIView):
         특정 유저의 북마크 목록 조회
         """
         user = request.user
-        limit = int(request.GET.get('limit', 10))
-        last = int(request.GET.get('last', 0))
+        try:
+            limit = int(request.GET.get('limit', 10))
+            last = int(request.GET.get('last', 0))
+        except ValueError:
+            raise RequestValidationError
 
         condition = Q(user=user) if last == 0 else Q(id__lt=last) & Q(user=user)
 

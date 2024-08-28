@@ -20,3 +20,8 @@ class InsertError(APIException):
 class HasNoPermission(APIException):
     status_code = status.HTTP_403_FORBIDDEN
     default_detail = '권한 없음'
+
+
+class ServerError(APIException):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    default_detail = '알 수 없는 오류'
