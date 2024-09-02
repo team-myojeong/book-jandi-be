@@ -446,3 +446,21 @@ class PollResultView(APIView):
         }
 
         return Response(response, status=status.HTTP_200_OK)
+
+
+class BookmarkListView(APIView):
+    permission_classes = [IsSignupCompleted]
+
+    def delete(self, request):
+        """
+        북마크 다량 취소
+        기존에 저장된 데이터 삭제
+        """
+        try:
+            bookmark_id_list = list(map(int, request.GET.getlist('id')))
+        except ValueError:
+            raise RequestValidationError
+        
+        Bookmark.objects.filter(id__in=bookmark_id_list, user=request.user).delete()
+
+        return Response({'success': True}, status=status.HTTP_200_OK)
